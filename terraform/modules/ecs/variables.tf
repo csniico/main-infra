@@ -26,7 +26,7 @@ variable "cluster_name" {
 variable "cluster_settings" {
   description = "List of cluster settings to add to the cluster"
   type        = list(map(string))
-  default     = [
+  default = [
     {
       name  = "containerInsights"
       value = "enabled"
@@ -44,7 +44,7 @@ variable "default_capacity_provider_strategy" {
 variable "fargate_capacity_providers" {
   description = "Map of Fargate capacity providers to add to the cluster"
   type        = map(any)
-  default     = {
+  default = {
     FARGATE = {
       default_strategy = {
         base   = 0

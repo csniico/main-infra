@@ -58,7 +58,7 @@ resource "aws_launch_template" "this" {
   dynamic "network_interfaces" {
     for_each = length(var.security_group_ids) > 0 ? [1] : []
     content {
-      security_groups = var.security_group_ids
+      security_groups       = var.security_group_ids
       delete_on_termination = true
     }
   }

@@ -96,12 +96,12 @@ variable "enable_replication" {
 
 variable "replication_destinations" {
   description = "List of AWS account IDs and regions to replicate the repository to"
-  type        = list(object({
+  type = list(object({
     region      = string
     account_id  = string
     registry_id = string
   }))
-  default     = []
+  default = []
 }
 
 # Tags

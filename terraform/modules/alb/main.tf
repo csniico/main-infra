@@ -32,9 +32,9 @@ resource "aws_lb_target_group" "this" {
   vpc_id      = var.vpc_id
   target_type = var.target_type
 
-  protocol_version      = var.protocol_version
-  deregistration_delay  = var.deregistration_delay
-  slow_start            = var.slow_start
+  protocol_version     = var.protocol_version
+  deregistration_delay = var.deregistration_delay
+  slow_start           = var.slow_start
 
   dynamic "stickiness" {
     for_each = length(var.stickiness) > 0 ? [var.stickiness] : []
@@ -82,9 +82,9 @@ resource "aws_lb_target_group" "additional" {
   vpc_id      = var.vpc_id
   target_type = lookup(each.value, "target_type", var.target_type)
 
-  protocol_version      = lookup(each.value, "protocol_version", var.protocol_version)
-  deregistration_delay  = lookup(each.value, "deregistration_delay", var.deregistration_delay)
-  slow_start            = lookup(each.value, "slow_start", var.slow_start)
+  protocol_version     = lookup(each.value, "protocol_version", var.protocol_version)
+  deregistration_delay = lookup(each.value, "deregistration_delay", var.deregistration_delay)
+  slow_start           = lookup(each.value, "slow_start", var.slow_start)
 
   dynamic "stickiness" {
     for_each = lookup(each.value, "stickiness", null) != null ? [lookup(each.value, "stickiness", null)] : []

@@ -62,7 +62,7 @@ output "target_group_arn_suffix" {
 
 output "target_group_arns" {
   description = "ARNs of all target groups"
-  value       = concat(
+  value = concat(
     var.create_target_group ? [aws_lb_target_group.this[0].arn] : [],
     [for tg in aws_lb_target_group.additional : tg.arn]
   )
@@ -70,7 +70,7 @@ output "target_group_arns" {
 
 output "target_group_names" {
   description = "Names of all target groups"
-  value       = concat(
+  value = concat(
     var.create_target_group ? [aws_lb_target_group.this[0].name] : [],
     [for tg in aws_lb_target_group.additional : tg.name]
   )
@@ -89,7 +89,7 @@ output "https_listener_arn" {
 
 output "listener_arns" {
   description = "ARNs of all listeners"
-  value       = concat(
+  value = concat(
     var.create_listener && var.protocol == "HTTP" ? [aws_lb_listener.http[0].arn] : [],
     var.create_listener && var.protocol == "HTTPS" && var.listener_certificate_arn != null ? [aws_lb_listener.https[0].arn] : [],
     [for listener in aws_lb_listener.additional : listener.arn]

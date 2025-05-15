@@ -346,7 +346,7 @@ variable "deletion_protection" {
 variable "timeouts" {
   description = "Define maximum timeout for creating, updating, and deleting database resources"
   type        = map(string)
-  default     = {
+  default = {
     create = "60m"
     update = "60m"
     delete = "60m"

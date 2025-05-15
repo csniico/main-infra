@@ -118,16 +118,16 @@ resource "aws_db_instance" "this" {
   option_group_name    = var.create_db_option_group ? aws_db_option_group.this[0].name : var.option_group_name
 
   # Backup
-  backup_retention_period      = var.backup_retention_period
-  backup_window                = var.backup_window
-  copy_tags_to_snapshot        = var.copy_tags_to_snapshot
-  skip_final_snapshot          = var.skip_final_snapshot
-  final_snapshot_identifier    = var.skip_final_snapshot ? null : "${var.final_snapshot_identifier_prefix}-${local.db_identifier}-${replace(timestamp(), ":", "-")}"
-  snapshot_identifier          = var.snapshot_identifier
+  backup_retention_period   = var.backup_retention_period
+  backup_window             = var.backup_window
+  copy_tags_to_snapshot     = var.copy_tags_to_snapshot
+  skip_final_snapshot       = var.skip_final_snapshot
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.final_snapshot_identifier_prefix}-${local.db_identifier}-${replace(timestamp(), ":", "-")}"
+  snapshot_identifier       = var.snapshot_identifier
 
   # Maintenance
-  maintenance_window   = var.maintenance_window
-  apply_immediately    = var.apply_immediately
+  maintenance_window         = var.maintenance_window
+  apply_immediately          = var.apply_immediately
   auto_minor_version_upgrade = var.auto_minor_version_upgrade
 
   # Enhanced Monitoring
@@ -177,10 +177,10 @@ resource "aws_db_instance" "replica" {
   replicate_source_db = var.replicate_source_db != false ? var.replicate_source_db : var.source_db_instance_identifier
 
   # Storage
-  storage_type          = var.storage_type
-  iops                  = var.iops
-  storage_encrypted     = var.storage_encrypted
-  kms_key_id            = var.kms_key_id
+  storage_type      = var.storage_type
+  iops              = var.iops
+  storage_encrypted = var.storage_encrypted
+  kms_key_id        = var.kms_key_id
 
   # Network
   port                   = var.port
@@ -195,15 +195,15 @@ resource "aws_db_instance" "replica" {
   option_group_name    = var.create_db_option_group ? aws_db_option_group.this[0].name : var.option_group_name
 
   # Backup
-  backup_retention_period      = var.backup_retention_period
-  backup_window                = var.backup_window
-  copy_tags_to_snapshot        = var.copy_tags_to_snapshot
-  skip_final_snapshot          = var.skip_final_snapshot
-  final_snapshot_identifier    = var.skip_final_snapshot ? null : "${var.final_snapshot_identifier_prefix}-${local.replica_identifier}-${replace(timestamp(), ":", "-")}"
+  backup_retention_period   = var.backup_retention_period
+  backup_window             = var.backup_window
+  copy_tags_to_snapshot     = var.copy_tags_to_snapshot
+  skip_final_snapshot       = var.skip_final_snapshot
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.final_snapshot_identifier_prefix}-${local.replica_identifier}-${replace(timestamp(), ":", "-")}"
 
   # Maintenance
-  maintenance_window   = var.maintenance_window
-  apply_immediately    = var.apply_immediately
+  maintenance_window         = var.maintenance_window
+  apply_immediately          = var.apply_immediately
   auto_minor_version_upgrade = var.auto_minor_version_upgrade
 
   # Enhanced Monitoring
