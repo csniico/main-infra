@@ -16,35 +16,12 @@ resource "aws_launch_template" "this" {
   }
 
   dynamic "metadata_options" {
-    for_each = length(local.default_metadata_options) > 0 ? [local.default_metadata_options] : []
+    for_each = length(var.metadata_options) > 0 ? [var.metadata_options] : []
     content {
       http_endpoint               = lookup(metadata_options.value, "http_endpoint", null)
       http_tokens                 = lookup(metadata_options.value, "http_tokens", null)
       http_put_response_hop_limit = lookup(metadata_options.value, "http_put_response_hop_limit", null)
       instance_metadata_tags      = lookup(metadata_options.value, "instance_metadata_tags", null)
-    }
-  }
-
-  dynamic "block_device_mappings" {
-    for_each = local.default_block_device_mappings
-    content {
-      device_name  = block_device_mappings.value.device_name
-      no_device    = lookup(block_device_mappings.value, "no_device", null)
-      virtual_name = lookup(block_device_mappings.value, "virtual_name", null)
-
-      dynamic "ebs" {
-        for_each = lookup(block_device_mappings.value, "ebs", null) != null ? [lookup(block_device_mappings.value, "ebs", null)] : []
-        content {
-          delete_on_termination = lookup(ebs.value, "delete_on_termination", null)
-          encrypted             = lookup(ebs.value, "encrypted", null)
-          iops                  = lookup(ebs.value, "iops", null)
-          kms_key_id            = lookup(ebs.value, "kms_key_id", null)
-          snapshot_id           = lookup(ebs.value, "snapshot_id", null)
-          throughput            = lookup(ebs.value, "throughput", null)
-          volume_size           = lookup(ebs.value, "volume_size", null)
-          volume_type           = lookup(ebs.value, "volume_type", null)
-        }
-      }
     }
   }
 
@@ -58,8 +35,7 @@ resource "aws_launch_template" "this" {
   dynamic "network_interfaces" {
     for_each = length(var.security_group_ids) > 0 ? [1] : []
     content {
-      security_groups       = var.security_group_ids
-      delete_on_termination = true
+      security_groups = var.security_group_ids
     }
   }
 

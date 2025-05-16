@@ -1,79 +1,49 @@
 # AWS Auto Scaling Group (ASG) Terraform Module
 
-This module provisions an AWS Auto Scaling Group with Launch Template, following AWS best practices and the principle of separation of concerns.
+This module provisions an AWS Auto Scaling Group with Launch Template, following AWS best practices and the principle of separation of concerns. It supports custom tag specifications for both ASG and launched instances.
 
 ## Features
 
-- Creates an Auto Scaling Group with configurable settings
+- Creates an Auto Scaling Group with configurable settings and tag specifications
 - Supports Launch Templates with detailed instance configurations
 - Integrates with load balancers for target group registration
 - Accepts external security groups and IAM instance profiles
-- Highly customizable through variables
+- Configurable health checks, termination policies, and cooldown periods
+- Supports capacity rebalancing for Spot Instances
+- Customizable metadata options for IMDSv2 compliance
+- Flexible tagging for both ASG and launched instances
 
 ## Usage
 
 ### Basic Usage
 
 ```terraform
-# Create security groups using the security-group module
-module "asg_sg" {
-  source = "./terraform/modules/security-group"
-
-  name   = "web-app-asg"
-  vpc_id = module.vpc.vpc_id
-  
-  # Security group rules
-  ingress_with_cidr_blocks = {
-    http = {
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
-      cidr_blocks = "10.0.0.0/8"
-    }
-  }
-}
-
-# Create IAM instance profile using the IAM module
-module "asg_iam" {
-  source = "./terraform/modules/iam"
-
-  name                    = "web-app-ec2"
-  trusted_role_services   = ["ec2.amazonaws.com"]
-  create_instance_profile = true
-  
-  # Attach managed policies
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  ]
-}
-
-# Create Auto Scaling Group
 module "asg" {
   source = "./terraform/modules/asg"
 
   name               = "web-app"
-  
+
   # Launch template configuration
   image_id           = "ami-0123456789abcdef0"
   instance_type      = "t3.micro"
-  
+
   # Use IAM instance profile from IAM module
   iam_instance_profile_name = module.asg_iam.instance_profile_name
-  
+
   # Use security groups from security-group module
   security_group_ids = [module.asg_sg.security_group_id]
-  
+
   # Auto scaling group configuration
   min_size         = 1
   max_size         = 3
   desired_capacity = 2
-  
+
   # Networking from VPC module
   vpc_zone_identifier = module.vpc.private_subnet_ids
-  
+
   # Target groups from ALB module
   target_group_arns = [module.alb.target_group_arns[0]]
-  
+
   tags = {
     Environment = "dev"
     Project     = "web-app"
@@ -88,47 +58,60 @@ module "asg" {
   source = "./terraform/modules/asg"
 
   name                 = "api-service"
-  
+
   # Launch template configuration
   image_id             = "ami-0123456789abcdef0"
   instance_type        = "t3.medium"
   key_name             = "my-key-pair"
   iam_instance_profile_name = module.asg_iam.instance_profile_name
   security_group_ids   = [module.asg_sg.security_group_id]
-  
+
   # User data
   user_data            = <<-EOF
     #!/bin/bash
     echo "Hello, World!" > /var/www/html/index.html
     systemctl start httpd
   EOF
-  
-  # Block device mappings
-  block_device_mappings = [
-    {
-      device_name = "/dev/xvda"
-      ebs = {
-        volume_size           = 30
-        volume_type           = "gp3"
-        delete_on_termination = true
-        encrypted             = true
-      }
-    }
-  ]
-  
+
+  # Instance metadata options for IMDSv2
+  metadata_options = {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+    instance_metadata_tags      = "enabled"
+  }
+
   # Auto scaling group configuration
   min_size                  = 2
   max_size                  = 10
   desired_capacity          = 2
   health_check_type         = "ELB"
   health_check_grace_period = 300
-  
+  capacity_rebalance        = true
+
   # Networking
   vpc_zone_identifier = module.vpc.private_subnet_ids
-  
+
   # Load balancer integration
   target_group_arns = [module.alb.target_group_arns[0]]
-  
+
+  # Custom tag specifications
+  tag_specifications = [
+    {
+      resource_type = "instance"
+      tags = {
+        Name = "api-service-instance"
+        Role = "api"
+      }
+    },
+    {
+      resource_type = "volume"
+      tags = {
+        Name = "api-service-volume"
+      }
+    }
+  ]
+
   tags = {
     Environment = "production"
     Project     = "api"
@@ -153,7 +136,6 @@ module "asg" {
 | ebs_optimized | If true, the launched EC2 instance will be EBS-optimized | bool | false | no |
 | enable_monitoring | Enables/disables detailed monitoring | bool | true | no |
 | metadata_options | Customize the metadata options for the instance | map(string) | {} | no |
-| block_device_mappings | Specify volumes to attach to the instance besides the volumes specified by the AMI | list(any) | [] | no |
 | iam_instance_profile_name | The name of the IAM instance profile to associate with launched instances | string | null | no |
 | tag_specifications | The tags to apply to the resources during launch | list(any) | [] | no |
 | create_asg | Controls if the Auto Scaling Group should be created | bool | true | no |
@@ -192,8 +174,8 @@ module "asg" {
 ## Prerequisites
 
 - AWS account and credentials configured
-- Terraform 0.13 or later
-- AWS provider 3.0 or later
+- Terraform 1.3.2 or later
+- AWS provider 5.83 or later
 - VPC with subnets (from a VPC module)
 - Security groups (from a security-group module)
 - IAM instance profile (from an IAM module)
@@ -201,8 +183,11 @@ module "asg" {
 
 ## Notes
 
-- This module follows the principle of separation of concerns by accepting external resources as inputs
-- For production workloads, it's recommended to use the ELB health check type
-- When using target groups, make sure to set the health_check_grace_period to allow instances time to bootstrap
-- The module creates default block device mappings and metadata options if none are provided
+- This module follows the principle of separation of concerns by accepting external resources as inputs rather than creating them internally
+- For production workloads, it's recommended to use the ELB health check type (`health_check_type = "ELB"`)
+- When using target groups, make sure to set the `health_check_grace_period` to allow instances time to bootstrap
+- The module creates default tag specifications if none are provided
 - Security groups, IAM roles, and load balancers should be created using their respective dedicated modules
+- Use `capacity_rebalance = true` when working with Spot Instances to enable automatic rebalancing
+- For enhanced security, configure `metadata_options` to enforce IMDSv2 by setting `http_tokens = "required"`
+- The module supports custom tag specifications for different resource types (instances, volumes, etc.)

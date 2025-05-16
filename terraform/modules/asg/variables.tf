@@ -75,12 +75,6 @@ variable "metadata_options" {
   default     = {}
 }
 
-variable "block_device_mappings" {
-  description = "Specify volumes to attach to the instance besides the volumes specified by the AMI"
-  type        = list(any)
-  default     = []
-}
-
 variable "iam_instance_profile_name" {
   description = "The name of the IAM instance profile to associate with launched instances"
   type        = string
