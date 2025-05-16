@@ -87,7 +87,7 @@ variable "instance_id" {
 variable "device_name" {
   description = "The device name to expose to the instance (e.g., /dev/sdh or xvdh)"
   type        = string
-  default     = "/dev/xvdf"
+  default     = "/dev/sdb"
 }
 
 variable "skip_destroy" {
