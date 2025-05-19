@@ -33,7 +33,7 @@ output "task_definition_revision" {
 # Service Outputs
 output "service_id" {
   description = "The ID of the ECS service"
-  value       = var.create_service && var.create_task_definition ? aws_ecs_service.this[0].id : null
+  value       = var.create_service && var.create_task_definition ? aws_ecs_service.this[0].arn : null
 }
 
 output "service_name" {
