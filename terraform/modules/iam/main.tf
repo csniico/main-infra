@@ -16,8 +16,8 @@ resource "aws_iam_role" "this" {
           Effect = "Allow"
           Action = var.trusted_role_actions
           Principal = {
-            Service = length(var.trusted_role_services) > 0 ? var.trusted_role_services : null
-            AWS     = length(var.trusted_role_arns) > 0 ? var.trusted_role_arns : null
+            Service = length(var.trusted_role_services) > 0 ? var.trusted_role_services : []
+            AWS     = length(var.trusted_role_arns) > 0 ? var.trusted_role_arns : []
           }
         }
       ],
