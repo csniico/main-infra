@@ -3,7 +3,7 @@
 # teardown_terraform_backend.sh
 #
 # Description: This script tears down AWS infrastructure for Terraform remote state management.
-# It deletes the S3 bucket (including all objects) and DynamoDB table created by the setup script.
+# It deletes the S3 bucket (including all objects) created by the setup script.
 #
 # Author: Augment Agent
 # Date: $(date +%Y-%m-%d)
@@ -160,35 +160,7 @@ function delete_s3_bucket() {
   log "SUCCESS" "S3 bucket '${bucket_name}' deleted successfully."
 }
 
-# Function to delete DynamoDB table
-function delete_dynamodb_table() {
-  local table_name="${PREFIX}-lock"
-
-  log "INFO" "Checking if DynamoDB table exists: ${table_name}"
-
-  # Check if table exists
-  if ! aws dynamodb describe-table --table-name "${table_name}" --region "${REGION}" ${AWS_PROFILE_PARAM} &>/dev/null; then
-    log "WARNING" "DynamoDB table '${table_name}' does not exist or you don't have access to it."
-    return
-  fi
-
-  # Confirm deletion
-  read -p "$(echo -e "${YELLOW}Are you sure you want to delete the DynamoDB table '${table_name}'? (y/n): ${RESET}")" confirm
-  if [[ "${confirm}" != "y" && "${confirm}" != "Y" ]]; then
-    log "INFO" "Skipping deletion of DynamoDB table '${table_name}'."
-    return
-  fi
-
-  # Delete the table
-  log "INFO" "Deleting DynamoDB table: ${table_name}"
-  aws dynamodb delete-table --table-name "${table_name}" --region "${REGION}" ${AWS_PROFILE_PARAM}
-
-  # Wait for the table to be deleted
-  log "INFO" "Waiting for DynamoDB table to be deleted..."
-  aws dynamodb wait table-not-exists --table-name "${table_name}" --region "${REGION}" ${AWS_PROFILE_PARAM}
-
-  log "SUCCESS" "DynamoDB table '${table_name}' deleted successfully."
-}
+# Note: DynamoDB table deletion has been removed as we're using local file locking instead
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -237,7 +209,6 @@ validate_output_dir
 # Display warning
 echo -e "\n${RED}${BOLD}WARNING:${RESET} ${RED}This script will delete the following resources:${RESET}"
 echo -e "  ${BOLD}S3 Bucket:${RESET}     ${PREFIX}-${ACCOUNT_ID}"
-echo -e "  ${BOLD}DynamoDB Table:${RESET} ${PREFIX}-lock"
 echo -e "\n${RED}${BOLD}This action is irreversible and will result in the loss of all Terraform state files!${RESET}\n"
 
 # Final confirmation
@@ -249,11 +220,9 @@ fi
 
 # Delete resources
 delete_s3_bucket
-delete_dynamodb_table
 
 # Output summary
 log "SUCCESS" "Terraform backend teardown completed successfully!"
 echo -e "\n${BOLD}Summary:${RESET}"
 echo -e "  ${BOLD}S3 Bucket:${RESET}     ${PREFIX}-${ACCOUNT_ID} (deleted)"
-echo -e "  ${BOLD}DynamoDB Table:${RESET} ${PREFIX}-lock (deleted)"
 echo -e "\n${BOLD}Your Terraform backend resources have been removed.${RESET}\n"
