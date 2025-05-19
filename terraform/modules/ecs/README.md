@@ -239,7 +239,7 @@ module "ecs" {
 | fargate_capacity_providers | Map of Fargate capacity providers to add to the cluster | map(any) | {FARGATE = {...}, FARGATE_SPOT = {...}} | no |
 | create_ec2_capacity_provider | Controls if EC2 capacity provider should be created | bool | false | no |
 | autoscaling_group_arn | ARN of the ASG to use for the EC2 capacity provider | string | "" | no |
-| create_task_definition | Controls if task definition should be created | bool | true | no |
+| create_task_definition | Controls if task definition should be created | bool | false | no |
 | task_definition_family | Family name of the task definition | string | null | no |
 | task_cpu | CPU units for the task | number | 256 | no |
 | task_memory | Memory for the task in MiB | number | 512 | no |

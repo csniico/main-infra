@@ -1,10 +1,10 @@
 # ECS Service
 resource "aws_ecs_service" "this" {
-  count = var.create_service && var.create_task_definition ? 1 : 0
+  count = var.create_service ? 1 : 0
 
   name                               = local.service_name
   cluster                            = var.create_cluster ? aws_ecs_cluster.this[0].id : var.cluster_name
-  task_definition                    = aws_ecs_task_definition.this[0].arn
+  task_definition                    = var.create_task_definition ? aws_ecs_task_definition.this[0].arn : null
   desired_count                      = var.desired_count
   deployment_maximum_percent         = var.deployment_maximum_percent
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
@@ -46,7 +46,9 @@ resource "aws_ecs_service" "this" {
 
   # Ignore changes to desired_count if autoscaling is enabled
   lifecycle {
-    ignore_changes = var.enable_autoscaling ? [desired_count] : []
+    ignore_changes = [
+      desired_count
+    ]
   }
 
   tags = merge(

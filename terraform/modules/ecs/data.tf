@@ -22,7 +22,7 @@ locals {
   cloudwatch_log_group_name = var.cloudwatch_log_group_name != null ? var.cloudwatch_log_group_name : "/ecs/${var.name}"
 
   # Default container definitions if none provided
-  default_container_definitions = var.container_definitions == [] ? [
+  default_container_definitions = var.container_definitions == null || var.container_definitions == [] ? [
     {
       name      = "${var.name}-container"
       image     = "nginx:latest"
@@ -43,5 +43,5 @@ locals {
         }
       }
     }
-  ] : var.container_definitions
+  ] : jsondecode(var.container_definitions)
 }

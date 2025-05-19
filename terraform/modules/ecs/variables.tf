@@ -76,7 +76,7 @@ variable "autoscaling_group_arn" {
 variable "create_task_definition" {
   description = "Controls if task definition should be created"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "task_definition_family" {
