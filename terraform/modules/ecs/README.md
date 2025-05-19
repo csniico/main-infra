@@ -246,7 +246,7 @@ module "ecs" {
 | network_mode | Network mode for the task definition | string | "awsvpc" | no |
 | requires_compatibilities | Set of launch types required by the task | list(string) | ["FARGATE"] | no |
 | container_definitions | List of container definitions in JSON format or as a list of maps | any | [] | no |
-| create_service | Controls if ECS service should be created | bool | true | no |
+| create_service | Controls if ECS service should be created | bool | false | no |
 | service_name | Name of the ECS service | string | null | no |
 | deployment_maximum_percent | Maximum percentage of tasks that can be running during a deployment | number | 200 | no |
 | deployment_minimum_healthy_percent | Minimum percentage of tasks that must remain healthy during a deployment | number | 100 | no |
@@ -281,7 +281,6 @@ module "ecs" {
 | task_definition_revision | The revision of the Task Definition |
 | service_id | The ID of the ECS service |
 | service_name | The name of the ECS service |
-| service_arn | The ARN of the ECS service |
 | cloudwatch_log_group_arn | The ARN of the CloudWatch log group |
 | cloudwatch_log_group_name | The name of the CloudWatch log group |
 | autoscaling_target_id | The ID of the Application Auto Scaling Target |

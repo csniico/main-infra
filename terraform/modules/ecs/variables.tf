@@ -119,7 +119,7 @@ variable "container_definitions" {
 variable "create_service" {
   description = "Controls if ECS service should be created"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "service_name" {

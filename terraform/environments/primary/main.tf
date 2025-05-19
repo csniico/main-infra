@@ -63,6 +63,13 @@ module "jenkins_sg" {
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
     }
+    # Allow SSH from everywhere
+    ssh = {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
 
   # Allow all outbound traffic
@@ -103,6 +110,13 @@ module "monitoring_sg" {
     jaeger = {
       from_port   = 8080
       to_port     = 8080
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+    # Allow SSH from everywhere
+    ssh = {
+      from_port   = 22
+      to_port     = 22
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
     }
@@ -317,7 +331,7 @@ module "jenkins_asg" {
   desired_capacity = var.asg_desired_capacities["jenkins"]
 
   # Networking from VPC module
-  vpc_zone_identifier = module.vpc.private_subnet_ids
+  vpc_zone_identifier = module.vpc.public_subnet_ids
 
   tags = var.tags
 }
@@ -350,7 +364,7 @@ module "monitoring_asg" {
   desired_capacity = var.asg_desired_capacities["monitoring"]
 
   # Networking from VPC module
-  vpc_zone_identifier = module.vpc.private_subnet_ids
+  vpc_zone_identifier = module.vpc.public_subnet_ids
 
   tags = var.tags
 }
