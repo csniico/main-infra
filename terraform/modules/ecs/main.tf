@@ -20,25 +20,34 @@ resource "aws_ecs_cluster" "this" {
   )
 }
 
-# Capacity Provider Strategy
+# Fargate Capacity Providers
 resource "aws_ecs_cluster_capacity_providers" "this" {
   count = var.create_cluster ? 1 : 0
 
   cluster_name = aws_ecs_cluster.this[0].name
 
   capacity_providers = concat(
-    var.fargate_capacity_providers != {} ? [for k, v in var.fargate_capacity_providers : k] : [],
+    [for k, v in var.fargate_capacity_providers : k],
     var.create_ec2_capacity_provider && var.autoscaling_group_arn != "" ? ["ec2_capacity_provider"] : []
   )
 
   dynamic "default_capacity_provider_strategy" {
-    for_each = var.default_capacity_provider_strategy != [] ? var.default_capacity_provider_strategy : var.fargate_capacity_providers
-    iterator = each
+    for_each = var.default_capacity_provider_strategy
+    content {
+      capacity_provider = default_capacity_provider_strategy.value.capacity_provider
+      weight            = lookup(default_capacity_provider_strategy.value, "weight", null)
+      base              = lookup(default_capacity_provider_strategy.value, "base", null)
+    }
+  }
+
+  dynamic "default_capacity_provider_strategy" {
+    for_each = var.default_capacity_provider_strategy == [] ? var.fargate_capacity_providers : {}
+    iterator = strategy
 
     content {
-      capacity_provider = var.default_capacity_provider_strategy != [] ? each.value.capacity_provider : each.key
-      weight            = var.default_capacity_provider_strategy != [] ? lookup(each.value, "weight", null) : lookup(each.value.default_strategy, "weight", null)
-      base              = var.default_capacity_provider_strategy != [] ? lookup(each.value, "base", null) : lookup(each.value.default_strategy, "base", null)
+      capacity_provider = strategy.key
+      weight            = lookup(strategy.value.default_strategy, "weight", null)
+      base              = lookup(strategy.value.default_strategy, "base", null)
     }
   }
 }
