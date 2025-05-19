@@ -88,3 +88,9 @@ output "enhanced_monitoring_iam_role_arn" {
   description = "The Amazon Resource Name (ARN) of the enhanced monitoring role"
   value       = var.monitoring_role_arn
 }
+
+# Managed Master User Password Outputs
+output "master_user_secret_arn" {
+  description = "The ARN of the master user secret (Only available when manage_master_user_password is set to true)"
+  value       = local.is_primary && var.manage_master_user_password ? aws_db_instance.this[0].master_user_secret[0].secret_arn : null
+}

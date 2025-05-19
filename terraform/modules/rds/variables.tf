@@ -140,6 +140,7 @@ variable "username" {
 variable "password" {
   description = "Password for the master DB user"
   type        = string
+  default     = null
   sensitive   = true
 }
 

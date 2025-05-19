@@ -4,13 +4,14 @@ This module provisions AWS Relational Database Service (RDS) instances with supp
 
 ## Features
 
-- Creates RDS instances with configurable settings for various database engines
-- Supports cross-region and same-region read replicas
+- Creates RDS instances with configurable settings for various database engines (MySQL, PostgreSQL, MariaDB, Oracle, SQL Server)
+- Supports both cross-region and same-region read replicas
 - Creates DB subnet groups, parameter groups, and option groups
-- Configures enhanced monitoring with custom IAM roles
+- Configures enhanced monitoring with external IAM roles
 - Enables performance insights for database performance analysis
 - Supports encryption with KMS keys
 - Configures automated backups and maintenance windows
+- Manages master user passwords in AWS Secrets Manager
 - Highly customizable through variables
 
 ## Usage
@@ -18,59 +19,40 @@ This module provisions AWS Relational Database Service (RDS) instances with supp
 ### Basic MySQL Database
 
 ```terraform
-# Create security groups using the security-group module
-module "db_sg" {
-  source = "./terraform/modules/security-group"
-
-  name   = "mysql-db"
-  vpc_id = module.vpc.vpc_id
-  
-  # Security group rules
-  ingress_with_cidr_blocks = {
-    mysql = {
-      from_port   = 3306
-      to_port     = 3306
-      protocol    = "tcp"
-      cidr_blocks = "10.0.0.0/8"
-    }
-  }
-}
-
-# Create RDS instance
 module "mysql" {
   source = "./terraform/modules/rds"
 
   name        = "app"
   environment = "dev"
-  
+
   # Engine options
   engine         = "mysql"
   engine_version = "8.0"
-  
+
   # Instance configuration
   instance_class = "db.t3.small"
-  
+
   # Storage
   allocated_storage = 20
   storage_type      = "gp3"
   storage_encrypted = true
-  
+
   # Authentication
   db_name  = "appdb"
   username = "admin"
   password = "YourSecurePassword123!"
-  
+
   # Network
-  subnet_ids          = module.vpc.private_subnet_ids
+  subnet_ids             = module.vpc.private_subnet_ids
   vpc_security_group_ids = [module.db_sg.security_group_id]
-  
+
   # Backup
   backup_retention_period = 7
-  
+
   # Maintenance
   maintenance_window = "Mon:00:00-Mon:03:00"
   backup_window      = "03:00-06:00"
-  
+
   # Tags
   tags = {
     Environment = "dev"
@@ -82,36 +64,57 @@ module "mysql" {
 ### PostgreSQL with Parameter Group and Enhanced Monitoring
 
 ```terraform
+# First create an IAM role for RDS Enhanced Monitoring
+module "rds_monitoring_role" {
+  source = "./terraform/modules/iam"
+
+  name = "rds-monitoring-role"
+
+  # Role configuration
+  trusted_role_services = ["monitoring.rds.amazonaws.com"]
+
+  # Attach managed policies
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+  ]
+
+  tags = {
+    Environment = "production"
+    Project     = "api"
+  }
+}
+
+# Then create the RDS instance with enhanced monitoring
 module "postgres" {
   source = "./terraform/modules/rds"
 
   name        = "api"
   environment = "production"
-  
+
   # Engine options
   engine         = "postgres"
   engine_version = "14.5"
-  
+
   # Instance configuration
   instance_class    = "db.r5.large"
   multi_az          = true
   availability_zone = null
-  
+
   # Storage
   allocated_storage     = 100
   max_allocated_storage = 500
   storage_type          = "gp3"
   storage_encrypted     = true
-  
+
   # Authentication
   db_name  = "apidb"
   username = "postgres"
   password = "YourSecurePassword123!"
-  
+
   # Network
-  subnet_ids           = module.vpc.private_subnet_ids
+  subnet_ids             = module.vpc.private_subnet_ids
   vpc_security_group_ids = [module.db_sg.security_group_id]
-  
+
   # Parameter group
   create_db_parameter_group = true
   family                    = "postgres14"
@@ -125,23 +128,22 @@ module "postgres" {
       value = "{DBInstanceClassMemory/32768}"
     }
   ]
-  
+
   # Enhanced monitoring
   monitoring_interval = 30
-  create_monitoring_role = true
-  
+  monitoring_role_arn = module.rds_monitoring_role.role_arn
+
   # Performance insights
   performance_insights_enabled          = true
   performance_insights_retention_period = 7
-  
+
   # Backup
   backup_retention_period = 30
   copy_tags_to_snapshot   = true
-  
+
   # Deletion protection
   deletion_protection = true
-  
-  # Tags
+
   tags = {
     Environment = "production"
     Project     = "api"
@@ -158,30 +160,29 @@ module "mysql_primary" {
 
   name        = "app-primary"
   environment = "production"
-  
+
   # Engine options
   engine         = "mysql"
   engine_version = "8.0"
-  
+
   # Instance configuration
   instance_class = "db.r5.large"
   multi_az       = true
-  
+
   # Storage
   allocated_storage = 100
   storage_type      = "gp3"
   storage_encrypted = true
-  
+
   # Authentication
   db_name  = "appdb"
   username = "admin"
   password = "YourSecurePassword123!"
-  
+
   # Network
-  subnet_ids           = module.vpc.private_subnet_ids
+  subnet_ids             = module.vpc.private_subnet_ids
   vpc_security_group_ids = [module.db_sg.security_group_id]
-  
-  # Tags
+
   tags = {
     Environment = "production"
     Project     = "app"
@@ -194,22 +195,58 @@ module "mysql_replica" {
 
   name        = "app-replica"
   environment = "production"
-  
+
   # Replica configuration
   replicate_source_db = module.mysql_primary.db_instance_identifier
-  
+
   # Instance configuration
   instance_class = "db.r5.large"
-  
+
   # Network
-  subnet_ids           = module.vpc.private_subnet_ids
+  subnet_ids             = module.vpc.private_subnet_ids
   vpc_security_group_ids = [module.db_sg.security_group_id]
-  
-  # Tags
+
   tags = {
     Environment = "production"
     Project     = "app"
     Role        = "replica"
+  }
+}
+```
+
+### MySQL with Secrets Manager Password Management
+
+```terraform
+module "mysql_with_secrets" {
+  source = "./terraform/modules/rds"
+
+  name        = "app"
+  environment = "dev"
+
+  # Engine options
+  engine         = "mysql"
+  engine_version = "8.0"
+
+  # Instance configuration
+  instance_class = "db.t3.small"
+
+  # Storage
+  allocated_storage = 20
+  storage_type      = "gp3"
+  storage_encrypted = true
+
+  # Authentication with Secrets Manager
+  db_name                     = "appdb"
+  username                    = "admin"
+  manage_master_user_password = true
+
+  # Network
+  subnet_ids             = module.vpc.private_subnet_ids
+  vpc_security_group_ids = [module.db_sg.security_group_id]
+
+  tags = {
+    Environment = "dev"
+    Project     = "app"
   }
 }
 ```
@@ -301,14 +338,15 @@ module "mysql_replica" {
 ## Prerequisites
 
 - AWS account and credentials configured
-- Terraform 0.13 or later
-- AWS provider 3.0 or later
+- Terraform 1.3.2 or later
+- AWS provider 5.83 or later
 - VPC with subnets (from a VPC module)
 - Security groups (from a security-group module)
+- IAM role for enhanced monitoring (from an IAM module) if needed
 
 ## Notes
 
-- This module follows the principle of separation of concerns by accepting external resources as inputs
+- This module follows the principle of separation of concerns by accepting external resources as inputs rather than creating them internally
 - For production environments, it's recommended to enable multi-AZ deployment for high availability
 - Use parameter groups to customize database settings according to your workload
 - Enable enhanced monitoring and performance insights for better visibility into database performance
@@ -317,3 +355,7 @@ module "mysql_replica" {
 - Set appropriate backup retention periods based on your data recovery requirements
 - Consider using option groups for additional database engine features
 - Security groups should be created using a dedicated security-group module
+- For enhanced security, use the `manage_master_user_password` feature to let AWS Secrets Manager handle password rotation
+- When using enhanced monitoring, create an IAM role with the appropriate permissions using a dedicated IAM module
+- For production workloads, set `deletion_protection = true` to prevent accidental database deletion
+- Use `max_allocated_storage` to enable storage autoscaling for databases with variable storage needs
