@@ -69,7 +69,7 @@ resource "aws_efs_access_point" "this" {
   # Root directory
   root_directory {
     path = lookup(each.value, "root_directory_path", "/")
-    
+
     dynamic "creation_info" {
       for_each = lookup(each.value, "owner_uid", null) != null && lookup(each.value, "owner_gid", null) != null ? [1] : []
       content {
@@ -84,8 +84,8 @@ resource "aws_efs_access_point" "this" {
   dynamic "posix_user" {
     for_each = lookup(each.value, "posix_user_uid", null) != null && lookup(each.value, "posix_user_gid", null) != null ? [1] : []
     content {
-      uid = lookup(each.value, "posix_user_uid", 0)
-      gid = lookup(each.value, "posix_user_gid", 0)
+      uid            = lookup(each.value, "posix_user_uid", 0)
+      gid            = lookup(each.value, "posix_user_gid", 0)
       secondary_gids = lookup(each.value, "posix_user_secondary_gids", null)
     }
   }
@@ -93,7 +93,8 @@ resource "aws_efs_access_point" "this" {
   tags = merge(
     var.tags,
     {
-      Name = "${local.file_system_name}-ap-${each.value.name}"
+      Name        = "${local.file_system_name}-ap-${each.value.name}",
+      AccessPoint = each.value.name
     }
   )
 }
@@ -103,66 +104,9 @@ resource "aws_efs_replication_configuration" "this" {
   count = var.enable_replication && var.replication_destination_region != null ? 1 : 0
 
   source_file_system_id = aws_efs_file_system.this.id
-  
+
   destination {
-    region = var.replication_destination_region
+    region     = var.replication_destination_region
     kms_key_id = var.replication_destination_kms_key_id
   }
 }
-
-# # Security Group for EFS (optional)
-# resource "aws_security_group" "this" {
-#   count = var.create_security_group ? 1 : 0
-
-#   name        = "${local.file_system_name}-sg"
-#   description = "Security group for EFS file system ${local.file_system_name}"
-#   vpc_id      = var.vpc_id
-
-#   tags = merge(
-#     var.tags,
-#     {
-#       Name = "${local.file_system_name}-sg"
-#     }
-#   )
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
-
-# # Security Group Rules for EFS
-# resource "aws_security_group_rule" "ingress_nfs" {
-#   count = var.create_security_group ? 1 : 0
-
-#   security_group_id = aws_security_group.this[0].id
-#   type              = "ingress"
-#   from_port         = 2049
-#   to_port           = 2049
-#   protocol          = "tcp"
-#   description       = "Allow NFS traffic from allowed CIDR blocks"
-#   cidr_blocks       = var.allowed_cidr_blocks
-# }
-
-# resource "aws_security_group_rule" "ingress_nfs_from_security_groups" {
-#   count = var.create_security_group ? length(var.allowed_security_group_ids) : 0
-
-#   security_group_id        = aws_security_group.this[0].id
-#   type                     = "ingress"
-#   from_port                = 2049
-#   to_port                  = 2049
-#   protocol                 = "tcp"
-#   description              = "Allow NFS traffic from allowed security groups"
-#   source_security_group_id = var.allowed_security_group_ids[count.index]
-# }
-
-# resource "aws_security_group_rule" "egress" {
-#   count = var.create_security_group ? 1 : 0
-
-#   security_group_id = aws_security_group.this[0].id
-#   type              = "egress"
-#   from_port         = 0
-#   to_port           = 0
-#   protocol          = "-1"
-#   description       = "Allow all outbound traffic"
-#   cidr_blocks       = ["0.0.0.0/0"]
-# }

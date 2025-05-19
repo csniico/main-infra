@@ -91,7 +91,7 @@ variable "transition_to_ia" {
   type        = string
   default     = null
   validation {
-    condition     = var.transition_to_ia == null || contains(["AFTER_7_DAYS", "AFTER_14_DAYS", "AFTER_30_DAYS", "AFTER_60_DAYS", "AFTER_90_DAYS"], var.transition_to_ia)
+    condition     = var.transition_to_ia == null ? true : contains(["AFTER_7_DAYS", "AFTER_14_DAYS", "AFTER_30_DAYS", "AFTER_60_DAYS", "AFTER_90_DAYS"], var.transition_to_ia)
     error_message = "Valid values for transition_to_ia are (AFTER_7_DAYS, AFTER_14_DAYS, AFTER_30_DAYS, AFTER_60_DAYS, AFTER_90_DAYS)."
   }
 }
@@ -101,7 +101,7 @@ variable "transition_to_primary_storage_class" {
   type        = string
   default     = null
   validation {
-    condition     = var.transition_to_primary_storage_class == null || contains(["AFTER_1_ACCESS"], var.transition_to_primary_storage_class)
+    condition     = var.transition_to_primary_storage_class == null ? true : contains(["AFTER_1_ACCESS"], var.transition_to_primary_storage_class)
     error_message = "Valid value for transition_to_primary_storage_class is AFTER_1_ACCESS."
   }
 }

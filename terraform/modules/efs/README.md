@@ -155,9 +155,9 @@ module "efs" {
 | mount_target_ids | The IDs of the mount targets |
 | mount_target_dns_names | The DNS names of the mount targets |
 | mount_target_network_interface_ids | The IDs of the network interfaces created for the mount targets |
-| access_point_ids | The IDs of the access points |
-| access_point_arns | The ARNs of the access points |
-| access_points | Map of access points created and their attributes |
+| access_point_ids | Map of access point IDs, keyed by tag AccessPoint |
+| access_point_arns | Map of access point ARNs, keyed by tag AccessPoint |
+| access_points | Map of access points created and their attributes, keyed by tag AccessPoint |
 | replication_configuration_destination_file_system_id | The file system ID of the replica |
 
 ## Prerequisites

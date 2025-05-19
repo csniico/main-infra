@@ -67,23 +67,23 @@ output "mount_target_network_interface_ids" {
 
 # Access Point Outputs
 output "access_point_ids" {
-  description = "The IDs of the access points"
-  value       = [for ap in aws_efs_access_point.this : ap.id]
+  description = "Map of access point IDs, keyed by tag AccessPoint"
+  value       = { for ap in aws_efs_access_point.this : ap.tags.AccessPoint => ap.id }
 }
 
 output "access_point_arns" {
-  description = "The ARNs of the access points"
-  value       = [for ap in aws_efs_access_point.this : ap.arn]
+  description = "Map of access point ARNs, keyed by tag AccessPoint"
+  value       = { for ap in aws_efs_access_point.this : ap.tags.AccessPoint => ap.arn }
 }
 
 output "access_points" {
-  description = "Map of access points created and their attributes"
-  value       = { for k, v in aws_efs_access_point.this : k => {
-    id              = v.id
-    arn             = v.arn
-    file_system_id  = v.file_system_id
-    posix_user      = v.posix_user
-    root_directory  = v.root_directory
+  description = "Map of access points created and their attributes, keyed by tag AccessPoint"
+  value       = { for ap in aws_efs_access_point.this : ap.tags.AccessPoint => {
+    id              = ap.id
+    arn             = ap.arn
+    file_system_id  = ap.file_system_id
+    posix_user      = ap.posix_user
+    root_directory  = ap.root_directory
   }}
 }
 
