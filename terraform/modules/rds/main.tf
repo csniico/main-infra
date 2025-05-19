@@ -132,7 +132,7 @@ resource "aws_db_instance" "this" {
 
   # Enhanced Monitoring
   monitoring_interval = var.monitoring_interval
-  monitoring_role_arn = var.monitoring_interval > 0 ? var.monitoring_role_arn != null ? var.monitoring_role_arn : aws_iam_role.enhanced_monitoring[0].arn : null
+  monitoring_role_arn = var.monitoring_interval > 0 ? var.monitoring_role_arn : null
 
   # Performance Insights
   performance_insights_enabled          = var.performance_insights_enabled
@@ -208,7 +208,7 @@ resource "aws_db_instance" "replica" {
 
   # Enhanced Monitoring
   monitoring_interval = var.monitoring_interval
-  monitoring_role_arn = var.monitoring_interval > 0 ? var.monitoring_role_arn != null ? var.monitoring_role_arn : aws_iam_role.enhanced_monitoring[0].arn : null
+  monitoring_role_arn = var.monitoring_interval > 0 ? var.monitoring_role_arn : null
 
   # Performance Insights
   performance_insights_enabled          = var.performance_insights_enabled
@@ -233,8 +233,7 @@ resource "aws_db_instance" "replica" {
 
   lifecycle {
     ignore_changes = [
-      replicate_source_db,
-      source_db_instance_identifier
+      replicate_source_db
     ]
   }
 }

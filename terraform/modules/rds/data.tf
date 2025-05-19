@@ -40,11 +40,11 @@ locals {
   is_same_region_replica = !var.replicate_source_db && var.source_db_instance_identifier != null
 
   # Default parameter group family if none provided
-  default_family = "${var.engine}${replace(var.engine_version, "/\\.\\d+$/", "")}"
+  default_family = "${var.engine}${regex("^\\d+\\.\\d+", var.engine_version)}"
 
   # Default option group engine name
   default_option_group_engine = var.engine == "mariadb" ? "mysql" : var.engine
 
   # Default option group major engine version
-  default_option_group_major_engine_version = replace(var.engine_version, "/\\.\\d+$/", "")
+  default_option_group_major_engine_version = regex("^\\d+\\.\\d+", var.engine_version)
 }

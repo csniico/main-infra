@@ -298,7 +298,7 @@ module "mysql_with_secrets" {
 | backup_retention_period | The days to retain backups for | number | 7 | no |
 | backup_window | The daily time range for automated backups | string | "03:00-06:00" | no |
 | copy_tags_to_snapshot | Copy all instance tags to snapshots | bool | true | no |
-| skip_final_snapshot | Determines whether a final DB snapshot is created before deletion | bool | false | no |
+| skip_final_snapshot | Determines whether a final DB snapshot is created before deletion | bool | true | no |
 | final_snapshot_identifier_prefix | The name prefix for the final snapshot | string | "final" | no |
 | snapshot_identifier | Specifies whether to create from a snapshot | string | null | no |
 | maintenance_window | The window to perform maintenance in | string | "Mon:00:00-Mon:03:00" | no |
