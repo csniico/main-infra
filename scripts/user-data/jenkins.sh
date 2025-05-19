@@ -24,17 +24,17 @@ cd ..
 rm -rf efs-utils
 
 # Create jenkins group with specific GID
-sudo groupadd -g $JENKINS_GID jenkins
+sudo groupadd -g $${JENKINS_GID} jenkins
 
 # Create jenkins user with specific UID
-sudo useradd -u $JENKINS_UID -g $JENKINS_GID -m -d $JENKINS_HOME jenkins
+sudo useradd -u $${JENKINS_UID} -g $${JENKINS_GID} -m -d $${JENKINS_HOME} jenkins
 
 # Add EFS mount
-sudo mkdir -p ${MOUNT_DIR}
-sudo mount -t efs -o tls,accesspoint=${ACCESS_POINT_ID} ${EFS_ID}:/ ${MOUNT_DIR}
+sudo mkdir -p $${MOUNT_DIR}
+sudo mount -t efs -o tls,accesspoint=$${ACCESS_POINT_ID} $${EFS_ID}:/ $${MOUNT_DIR}
 
 # Make it persistent
-echo "${EFS_ID}:/ ${MOUNT_DIR} efs _netdev,tls,accesspoint=${ACCESS_POINT_ID} 0 0" | sudo tee -a /etc/fstab
+echo "$${EFS_ID}:/ $${MOUNT_DIR} efs _netdev,tls,accesspoint=$${ACCESS_POINT_ID} 0 0" | sudo tee -a /etc/fstab
 
 # Install Jenkins
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
@@ -51,9 +51,9 @@ sudo DEBIAN_FRONTEND=noninteractive apt install -y \
 sudo systemctl stop jenkins
 
 # Replace default Jenkins home with EFS mount
-sudo rm -rf ${JENKINS_HOME}
-sudo ln -s ${MOUNT_DIR} ${JENKINS_HOME}
-sudo chown -R jenkins:jenkins ${JENKINS_HOME}
+sudo rm -rf $${JENKINS_HOME}
+sudo ln -s $${MOUNT_DIR} $${JENKINS_HOME}
+sudo chown -R jenkins:jenkins $${JENKINS_HOME}
 
 # Enable and start Jenkins
 sudo systemctl enable jenkins

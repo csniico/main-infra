@@ -6,7 +6,6 @@ ACCESS_POINT_ID="${ap_id}"
 MOUNT_DIR="${mount_dir}"
 DOCKER_UID="${docker_uid}"
 DOCKER_GID="${docker_gid}"
-DOCKER_HOME=/var/lib/docker
 
 # Install updates and EFS utils
 sudo DEBIAN_FRONTEND=noninteractive apt update -y && \
@@ -24,17 +23,17 @@ cd ..
 rm -rf efs-utils
 
 # Create docker group with specific GID
-sudo groupadd -g $DOCKER_GID docker
+sudo groupadd -g $${DOCKER_GID} docker
 
 # Create docker user with specific UID
-sudo useradd -u $DOCKER_UID -g $DOCKER_GID docker
+sudo useradd -u $${DOCKER_UID} -g $${DOCKER_GID} docker
 
 # Add EFS mount
-sudo mkdir -p ${MOUNT_DIR}
-sudo mount -t efs -o tls,accesspoint=${ACCESS_POINT_ID} ${EFS_ID}:/ ${MOUNT_DIR}
+sudo mkdir -p $${MOUNT_DIR}
+sudo mount -t efs -o tls,accesspoint=$${ACCESS_POINT_ID} $${EFS_ID}:/ $${MOUNT_DIR}
 
 # Make it persistent
-echo "${EFS_ID}:/ ${MOUNT_DIR} efs _netdev,tls,accesspoint=${ACCESS_POINT_ID} 0 0" | sudo tee -a /etc/fstab
+echo "$${EFS_ID}:/ $${MOUNT_DIR} efs _netdev,tls,accesspoint=$${ACCESS_POINT_ID} 0 0" | sudo tee -a /etc/fstab
 
 # Install Docker
 sudo apt-get update
