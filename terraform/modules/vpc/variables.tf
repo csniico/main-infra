@@ -4,12 +4,6 @@ variable "name" {
   default     = "main"
 }
 
-variable "region" {
-  description = "AWS region to deploy resources"
-  type        = string
-  default     = "eu-west-1"
-}
-
 variable "vpc_cidr" {
   description = "CIDR block for the VPC"
   type        = string
@@ -48,6 +42,22 @@ variable "single_nat_gateway" {
   description = "Use a single NAT gateway for all private subnets (cost savings)"
   type        = bool
   default     = false
+}
+
+variable "enable_nat_gateway" {
+  description = "Enable NAT gateway for private subnets (set to false to disable NAT gateways completely)"
+  type        = bool
+  default     = true
+}
+
+variable "create_subnet_types" {
+  description = "List of subnet types to create (valid values: public, private)"
+  type        = list(string)
+  default     = ["public", "private"]
+  validation {
+    condition     = length([for type in var.create_subnet_types : type if contains(["public", "private"], type)]) == length(var.create_subnet_types)
+    error_message = "Valid values for create_subnet_types are 'public' and 'private'."
+  }
 }
 
 variable "tags" {

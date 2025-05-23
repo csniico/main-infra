@@ -7,7 +7,8 @@ This module provisions an AWS VPC with public and private subnets across multipl
 - Creates a VPC with configurable CIDR block
 - Provisions public and private subnets across multiple availability zones
 - Sets up Internet Gateway for public subnets
-- Configures NAT Gateways for private subnets (with option for single or multiple NAT Gateways)
+- Configures NAT Gateways for private subnets (with options for single, multiple, or no NAT Gateways)
+- Selective subnet creation (create only the subnet types you need)
 - Creates appropriate route tables for both subnet types
 - Highly customizable through variables
 
@@ -21,8 +22,7 @@ module "vpc" {
 
   name     = "example"
   vpc_cidr = "10.0.0.0/16"
-  region   = "eu-west-1"
-  
+
   tags = {
     Environment = "dev"
     Project     = "example"
@@ -40,11 +40,10 @@ module "vpc" {
   vpc_cidr             = "10.0.0.0/16"
   public_subnets_cidr  = "10.0.0.0/20"
   private_subnets_cidr = "10.0.16.0/20"
-  region               = "eu-west-1"
   az_count             = 3
   single_nat_gateway   = false  # Use one NAT Gateway per AZ for high availability
   subnet_newbits       = 2      # Divide each subnet CIDR into 4 (2^2) equal parts
-  
+
   tags = {
     Environment = "production"
     Project     = "example"
@@ -63,9 +62,42 @@ module "vpc" {
   vpc_cidr           = "10.0.0.0/16"
   az_count           = 2
   single_nat_gateway = true  # Use a single NAT Gateway for cost savings
-  
+
   tags = {
     Environment = "staging"
+  }
+}
+```
+
+### Disable NAT Gateways
+
+```terraform
+module "vpc" {
+  source = "./terraform/modules/vpc"
+
+  name              = "dev"
+  vpc_cidr          = "10.0.0.0/16"
+  enable_nat_gateway = false  # Disable NAT Gateways completely
+
+  tags = {
+    Environment = "dev"
+  }
+}
+```
+
+### Selective Subnet Creation
+
+```terraform
+module "vpc" {
+  source = "./terraform/modules/vpc"
+
+  name               = "public-only"
+  vpc_cidr           = "10.0.0.0/16"
+  create_subnet_types = ["public"]  # Create only public subnets
+  enable_nat_gateway  = false       # No need for NAT Gateways
+
+  tags = {
+    Environment = "demo"
   }
 }
 ```
@@ -75,13 +107,14 @@ module "vpc" {
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|----------|
 | name | Name prefix for all resources | string | "main" | no |
-| region | AWS region to deploy resources | string | "eu-west-1" | no |
 | vpc_cidr | CIDR block for the VPC | string | "10.0.0.0/16" | no |
 | public_subnets_cidr | CIDR block for public subnets | string | "10.0.0.0/20" | no |
 | private_subnets_cidr | CIDR block for private subnets | string | "10.0.16.0/20" | no |
 | az_count | Number of availability zones to use (2-3) | number | 3 | no |
 | subnet_newbits | Number of additional bits to extend the subnet CIDR | number | 2 | no |
 | single_nat_gateway | Use a single NAT gateway for all private subnets | bool | false | no |
+| enable_nat_gateway | Enable NAT gateway for private subnets | bool | true | no |
+| create_subnet_types | List of subnet types to create (valid values: public, private) | list(string) | ["public", "private"] | no |
 | tags | Tags to apply to all resources | map(string) | {} | no |
 
 ## Outputs
@@ -107,4 +140,6 @@ module "vpc" {
 ## Notes
 
 - NAT Gateways are relatively expensive resources. Using `single_nat_gateway = true` can significantly reduce costs for non-production environments.
+- For development environments or when NAT Gateways are not needed, set `enable_nat_gateway = false` to completely disable NAT Gateway provisioning.
+- When creating only public subnets (`create_subnet_types = ["public"]`), NAT Gateways are not required and can be disabled.
 - The module automatically selects available availability zones in the specified region.
