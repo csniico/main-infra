@@ -39,8 +39,8 @@ resource "aws_ecs_service" "this" {
     for_each = var.load_balancer_config
     content {
       target_group_arn = lookup(load_balancer.value, "target_group_arn", null)
-      container_name   = lookup(load_balancer.value, "container_name", local.default_container_definitions[0].name)
-      container_port   = lookup(load_balancer.value, "container_port", local.default_container_definitions[0].portMappings[0].containerPort)
+      container_name   = lookup(load_balancer.value, "container_name", null)
+      container_port   = lookup(load_balancer.value, "container_port", null)
     }
   }
 

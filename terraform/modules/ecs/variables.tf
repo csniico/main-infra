@@ -115,6 +115,12 @@ variable "container_definitions" {
   default     = []
 }
 
+variable "volumes" {
+  description = "List of volumes to attach to the task definition"
+  type        = any
+  default     = []
+}
+
 # Service Configuration
 variable "create_service" {
   description = "Controls if ECS service should be created"

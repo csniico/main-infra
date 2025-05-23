@@ -267,6 +267,7 @@ module "ecs" {
 | autoscaling_min_capacity | Minimum number of tasks to run in the service | number | 1 | no |
 | autoscaling_max_capacity | Maximum number of tasks to run in the service | number | 10 | no |
 | autoscaling_policies | Map of autoscaling policies to create | any | {} | no |
+| volumes | List of volumes to attach to the task | list(map(string)) | [] | no |
 | tags | Tags to apply to all resources | map(string) | {} | no |
 
 ## Outputs
@@ -302,6 +303,5 @@ module "ecs" {
 - For production workloads, it's recommended to use private subnets for ECS tasks
 - When using Fargate, the `awsvpc` network mode is required
 - For EC2 launch type, you need to create an Auto Scaling Group using a dedicated ASG module
-- The module creates a default container definition if none is provided
 - Auto scaling is disabled by default but can be enabled with the `enable_autoscaling` variable
 - IAM roles, security groups, and load balancers should be created using their respective dedicated modules
