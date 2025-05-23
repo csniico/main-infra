@@ -130,9 +130,20 @@ resource "aws_lb_listener" "http" {
   port              = var.port
   protocol          = var.protocol
 
-  default_action {
-    type             = "forward"
-    target_group_arn = var.create_target_group ? aws_lb_target_group.this[0].arn : null
+  dynamic "default_action" {
+    for_each = var.create_target_group ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.this[0].arn
+    }
+  }
+
+  dynamic "default_action" {
+    for_each = (!var.create_target_group && length(var.target_groups) > 0) ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = values(aws_lb_target_group.additional)[0].arn
+    }
   }
 
   tags = merge(
@@ -153,9 +164,20 @@ resource "aws_lb_listener" "https" {
   ssl_policy        = var.listener_ssl_policy
   certificate_arn   = var.listener_certificate_arn
 
-  default_action {
-    type             = "forward"
-    target_group_arn = var.create_target_group ? aws_lb_target_group.this[0].arn : null
+  dynamic "default_action" {
+    for_each = var.create_target_group ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.this[0].arn
+    }
+  }
+
+  dynamic "default_action" {
+    for_each = (!var.create_target_group && length(var.target_groups) > 0) ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = values(aws_lb_target_group.additional)[0].arn
+    }
   }
 
   tags = merge(

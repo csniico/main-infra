@@ -56,6 +56,8 @@ module "alb" {
   security_group_ids = [module.alb_sg.security_group_id]
   
   # Target group configuration
+  create_target_group = true
+  create_listener    = true
   target_type        = "instance"
   port               = 80
   protocol           = "HTTP"
@@ -98,6 +100,8 @@ module "alb" {
   security_group_ids = [module.alb_sg.security_group_id]
   
   # HTTPS configuration
+  create_listener    = true
+  create_target_group = true
   port                    = 443
   protocol                = "HTTPS"
   listener_certificate_arn = "arn:aws:acm:us-west-1:123456789012:certificate/abcdef-1234-5678-9012-abcdefghijkl"
@@ -181,7 +185,7 @@ module "alb" {
 | vpc_id | ID of the VPC where to create the load balancer | string | n/a | yes |
 | subnet_ids | List of subnet IDs for the load balancer | list(string) | n/a | yes |
 | security_group_ids | List of security group IDs for the load balancer | list(string) | [] | no |
-| create_target_group | Controls if target group should be created | bool | true | no |
+| create_target_group | Controls if target group should be created | bool | false | no |
 | target_group_name | Name of the target group | string | null | no |
 | target_groups | Map of target group configurations to create | any | {} | no |
 | target_type | Type of target that you must specify when registering targets with this target group | string | "instance" | no |
@@ -192,7 +196,7 @@ module "alb" {
 | slow_start | Amount time for targets to warm up before the load balancer sends them a full share of requests | number | 0 | no |
 | stickiness | Target group sticky configuration | map(string) | {} | no |
 | health_check | Health check configuration for the target group | map(string) | {} | no |
-| create_listener | Controls if listener should be created | bool | true | no |
+| create_listener | Controls if listener should be created | bool | false | no |
 | listeners | Map of listener configurations to create | any | {} | no |
 | listener_ssl_policy | Name of the SSL Policy for the listener | string | "ELBSecurityPolicy-2016-08" | no |
 | listener_certificate_arn | ARN of the default SSL server certificate | string | null | no |
@@ -216,6 +220,7 @@ module "alb" {
 | target_group_arn_suffix | The ARN suffix for use with CloudWatch Metrics for the default target group |
 | target_group_arns | ARNs of all target groups |
 | target_group_names | Names of all target groups |
+| target_group_arns_map | Map of target group names to their ARNs, allowing them to be referenced by name |
 | http_listener_arn | The ARN of the HTTP listener |
 | https_listener_arn | The ARN of the HTTPS listener |
 | listener_arns | ARNs of all listeners |

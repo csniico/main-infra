@@ -76,6 +76,16 @@ output "target_group_names" {
   )
 }
 
+output "target_group_arns_map" {
+  description = "Map of target group names to their ARNs, allowing them to be referenced by name"
+  value = merge(
+    var.create_target_group ? {
+      (aws_lb_target_group.this[0].name) = aws_lb_target_group.this[0].arn
+    } : {},
+    { for key, tg in aws_lb_target_group.additional : tg.name => tg.arn }
+  )
+}
+
 # Listener Outputs
 output "http_listener_arn" {
   description = "The ARN of the HTTP listener"
