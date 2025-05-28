@@ -62,8 +62,8 @@ variable "asg_min_sizes" {
   description = "Minimum sizes for ASGs"
   type        = map(number)
   default = {
-    "jenkins"    = 0
-    "monitoring" = 0
+    "jenkins"    = 1
+    "monitoring" = 1
   }
 }
 
@@ -71,8 +71,8 @@ variable "asg_max_sizes" {
   description = "Maximum sizes for ASGs"
   type        = map(number)
   default = {
-    "jenkins"    = 0
-    "monitoring" = 0
+    "jenkins"    = 3
+    "monitoring" = 3
   }
 }
 
@@ -80,8 +80,8 @@ variable "asg_desired_capacities" {
   description = "Desired capacities for ASGs"
   type        = map(number)
   default = {
-    "jenkins"    = 0
-    "monitoring" = 0
+    "jenkins"    = 1
+    "monitoring" = 1
   }
 }
 
