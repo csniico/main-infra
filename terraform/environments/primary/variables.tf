@@ -17,6 +17,12 @@ variable "region" {
   default     = "eu-west-1"
 }
 
+variable "dr_region" {
+  description = "DR AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
 # VPC
 variable "vpc_cidr" {
   description = "CIDR block for the VPC"
@@ -47,8 +53,8 @@ variable "instance_types" {
   description = "EC2 instance types for ASGs"
   type        = map(string)
   default = {
-    "jenkins"  = "t3.small"
-    "monitoring"  = "t3.small"
+    "jenkins"    = "t3.small"
+    "monitoring" = "t3.small"
   }
 }
 
@@ -56,8 +62,8 @@ variable "asg_min_sizes" {
   description = "Minimum sizes for ASGs"
   type        = map(number)
   default = {
-    "jenkins"  = 1
-    "monitoring"  = 1
+    "jenkins"    = 1
+    "monitoring" = 1
   }
 }
 
@@ -65,8 +71,8 @@ variable "asg_max_sizes" {
   description = "Maximum sizes for ASGs"
   type        = map(number)
   default = {
-    "jenkins"  = 3
-    "monitoring"  = 3
+    "jenkins"    = 1
+    "monitoring" = 1
   }
 }
 
@@ -74,8 +80,8 @@ variable "asg_desired_capacities" {
   description = "Desired capacities for ASGs"
   type        = map(number)
   default = {
-    "jenkins"  = 1
-    "monitoring"  = 1
+    "jenkins"    = 1
+    "monitoring" = 1
   }
 }
 
@@ -108,13 +114,13 @@ variable "efs_monitoring_dir" {
 variable "db_engine" {
   description = "Database engine"
   type        = string
-  default     = "mysql"
+  default     = "postgres"
 }
 
 variable "db_engine_version" {
   description = "Database engine version"
   type        = string
-  default     = "8.0"
+  default     = "17.2"
 }
 
 variable "db_instance_class" {
@@ -138,15 +144,58 @@ variable "db_name" {
 variable "db_username" {
   description = "Database username"
   type        = string
-  default     = "admin"
+  default     = "postgres"
   sensitive   = true
 }
 
 variable "db_password" {
   description = "Database password"
   type        = string
-  default     = null
   sensitive   = true
+}
+
+# Ports
+variable "port" {
+  description = "Port for services"
+  type        = map(number)
+  default = {
+    "jenkins"    = 8080
+    "prometheus" = 7000
+    "grafana"    = 7001
+    "jaeger"     = 7002
+    "postgres"   = 5432
+    # microservices
+    "frontend"             = 3000
+    "notification_service" = 9292
+    "user_service"         = 9193
+    "task_api"             = 9191
+    "ckafka"               = 9092
+  }
+}
+
+# ECS
+variable "service_names" {
+  description = "Names for ECS services"
+  type        = map(string)
+  default = {
+    "frontend"             = "frontend"
+    "notification_service" = "notification-service"
+    "user_service"         = "user-service"
+    "task_api"             = "task-api"
+    "ckafka"               = "ckafka"
+  }
+}
+
+variable "service_min_sizes" {
+  description = "Minimum sizes for ECS services"
+  type        = number
+  default     = 1
+}
+
+variable "service_max_sizes" {
+  description = "Maximum sizes for ECS services"
+  type        = number
+  default     = 3
 }
 
 # Tags

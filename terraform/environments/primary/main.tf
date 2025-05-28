@@ -361,6 +361,19 @@ module "jenkins_asg" {
   # Use security groups from security-group module
   security_group_ids = [module.jenkins_sg.security_group_id]
 
+  # Block device mappings
+  block_device_mappings = [
+    {
+      device_name = "/dev/xvda"
+      ebs = {
+        volume_size           = 20
+        volume_type           = "gp3"
+        delete_on_termination = true
+        encrypted             = true
+      }
+    }
+  ]
+
   # Auto scaling group configuration
   min_size         = var.asg_min_sizes["jenkins"]
   max_size         = var.asg_max_sizes["jenkins"]
@@ -395,6 +408,19 @@ module "monitoring_asg" {
   # Use security groups from security-group module
   security_group_ids = [module.monitoring_sg.security_group_id]
 
+  # Block device mappings
+  block_device_mappings = [
+    {
+      device_name = "/dev/xvda"
+      ebs = {
+        volume_size           = 12
+        volume_type           = "gp3"
+        delete_on_termination = true
+        encrypted             = true
+      }
+    }
+  ]
+
   # Auto scaling group configuration
   min_size         = var.asg_min_sizes["monitoring"]
   max_size         = var.asg_max_sizes["monitoring"]
@@ -411,11 +437,9 @@ module "monitoring_asg" {
 module "efs" {
   source = "../../modules/efs"
 
-  name       = "${local.name}-efs"
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnet_ids
-
-  # Use security groups from security-group module
+  name               = "${local.name}-efs"
+  vpc_id             = module.vpc.vpc_id
+  subnet_ids         = module.vpc.private_subnet_ids
   security_group_ids = [module.efs_sg.security_group_id]
 
   # Access points
@@ -439,6 +463,10 @@ module "efs" {
       posix_user_gid      = var.monitoring_id
     }
   ]
+
+  # Enable replication
+  enable_replication             = true
+  replication_destination_region = var.dr_region
 
   tags = var.tags
 }
@@ -618,7 +646,7 @@ module "alb" {
       port             = var.port["grafana"]
       protocol         = "HTTP"
       target_group_key = "grafana"
-      }
+    }
     jaeger = {
       port             = var.port["jaeger"]
       protocol         = "HTTP"
@@ -937,11 +965,12 @@ module "rds" {
   storage_encrypted     = true
 
   # Authentication
-  db_name                     = var.db_name
-  username                    = var.db_username
-  manage_master_user_password = true
+  db_name  = var.db_name
+  username = var.db_username
+  password = var.db_password
 
   # Network
+  port                   = var.port["postgres"]
   subnet_ids             = module.vpc.private_subnet_ids
   vpc_security_group_ids = [module.db_sg.security_group_id]
   publicly_accessible    = false
@@ -952,19 +981,6 @@ module "rds" {
   # Maintenance
   maintenance_window = "Mon:00:00-Mon:03:00"
   backup_window      = "03:00-06:00"
-
-  # Parameter group
-  create_db_parameter_group = true
-  parameters = [
-    {
-      name  = "character_set_server"
-      value = "utf8"
-    },
-    {
-      name  = "character_set_client"
-      value = "utf8"
-    }
-  ]
 
   tags = var.tags
 }
