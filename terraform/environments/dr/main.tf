@@ -437,9 +437,10 @@ module "monitoring_asg" {
 module "efs" {
   source = "../../modules/efs"
 
-  create_file_system    = false
-  name                  = "${local.name}-efs"
-  source_file_system_id = local.primary_efs_file_system.id
+  name   = "${local.name}-efs"
+  vpc_id = module.vpc.vpc_id
+  # Note: Using the primary EFS file system ID directly
+  # This is handled via mount targets in the user data scripts
 
   subnet_ids         = module.vpc.private_subnet_ids
   security_group_ids = [module.efs_sg.security_group_id]
