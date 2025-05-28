@@ -21,27 +21,14 @@ locals {
   # Use provided name or generate one
   cloudwatch_log_group_name = var.cloudwatch_log_group_name != null ? var.cloudwatch_log_group_name : "/ecs/${var.name}"
 
-  # Default container definitions if none provided
-  default_container_definitions = var.container_definitions == null || var.container_definitions == [] ? [
-    {
-      name      = "${var.name}-container"
-      image     = "nginx:latest"
-      essential = true
-      portMappings = [
-        {
-          containerPort = 80
-          hostPort      = 80
-          protocol      = "tcp"
-        }
-      ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = local.cloudwatch_log_group_name
-          "awslogs-region"        = local.region
-          "awslogs-stream-prefix" = "ecs"
-        }
-      }
-    }
-  ] : jsondecode(var.container_definitions)
+  # Service Discovery
+  service_discovery_namespace_name = var.service_discovery_namespace_name != null ? var.service_discovery_namespace_name : "${var.name}.local"
+  service_discovery_service_name   = var.service_discovery_service_name != null ? var.service_discovery_service_name : var.name
+
+  # Determine which namespace to use
+  service_discovery_namespace_id = var.create_service_discovery_namespace ? (
+    var.service_discovery_namespace_type == "DNS_PRIVATE" ?
+    aws_service_discovery_private_dns_namespace.this[0].id :
+    aws_service_discovery_public_dns_namespace.this[0].id
+  ) : var.service_discovery_namespace_id
 }

@@ -1,4 +1,14 @@
 # Data sources
+data "aws_efs_file_system" "primary" {
+  provider = aws.primary
+  tags     = var.primary_tags
+}
+
+data "aws_db_instance" "primary" {
+  provider = aws.primary
+  tags     = var.primary_tags
+}
+
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -7,15 +17,13 @@ data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 
-resource "random_id" "cluster_id" {
-  byte_length = 24
-}
-
 locals {
-  account_id = data.aws_caller_identity.current.account_id
-  region     = data.aws_region.current.name
-  name       = "${var.name}-${var.environment}"
-  azs        = slice(data.aws_availability_zones.available.names, 0, var.az_count)
+  account_id              = data.aws_caller_identity.current.account_id
+  region                  = data.aws_region.current.name
+  name                    = "${var.name}-${var.environment}"
+  azs                     = slice(data.aws_availability_zones.available.names, 0, var.az_count)
+  primary_efs_file_system = data.aws_efs_file_system.primary
+  primary_db_instance     = data.aws_db_instance.primary
 
   # Container definitions for ECS services
   container_definitions = {
@@ -23,7 +31,7 @@ locals {
     frontend = jsonencode([
       {
         name      = var.service_names["frontend"]
-        image     = "124355645722.dkr.ecr.eu-west-1.amazonaws.com/frontend-service:latest"
+        image     = "godcandidate/frontend-service:latest"
         essential = true
         portMappings = [
           {
@@ -39,21 +47,21 @@ locals {
           },
           {
             name  = "AUTH_API_URL"
-            value = "http://${module.alb.lb_dns_name}:${var.port["user_service"]}"
+            value = "http://localhost:${var.port["user_service"]}"
           },
           {
             name  = "TASK_API_URL"
-            value = "http://${module.alb.lb_dns_name}:${var.port["task_api"]}"
+            value = "http://localhost:${var.port["task_api"]}"
           }
         ]
       }
-    ]),
+    ])
 
     # Notification Service
     notification_service = jsonencode([
       {
         name      = var.service_names["notification_service"]
-        image     = "124355645722.dkr.ecr.eu-west-1.amazonaws.com/notification-service:latest"
+        image     = "chrisncs/notification-service:latest"
         essential = true
         portMappings = [
           {
@@ -73,7 +81,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "${var.service_names["ckafka"]}:${var.port["ckafka"]}"
           },
           {
             name  = "SERVER_PORT"
@@ -81,7 +89,7 @@ locals {
           },
           {
             name  = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-            value = "http://${module.alb.lb_dns_name}:${var.port["jaeger"]}/v1/traces"
+            value = "http://localhost:4318/v1/traces"
           },
           {
             name  = "OTEL_SERVICE_NAME"
@@ -103,7 +111,7 @@ locals {
     user_service = jsonencode([
       {
         name      = var.service_names["user_service"]
-        image     = "124355645722.dkr.ecr.eu-west-1.amazonaws.com/user-service:latest"
+        image     = "chrisncs/user-service:latest"
         essential = true
         portMappings = [
           {
@@ -115,7 +123,7 @@ locals {
         environment = [
           {
             name  = "SPRING_DATASOURCE_HOST_URL"
-            value = "jdbc:postgresql://${module.rds.db_instance_endpoint}/${var.db_name}"
+            value = "${local.primary_db_instance.endpoint}/${var.db_name}"
           },
           {
             name  = "SPRING_DATASOURCE_USERNAME"
@@ -127,7 +135,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "${var.service_names["ckafka"]}:${var.port["ckafka"]}"
           },
           {
             name  = "SERVER_PORT"
@@ -135,7 +143,7 @@ locals {
           },
           {
             name  = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-            value = "http://${module.alb.lb_dns_name}:${var.port["jaeger"]}/v1/traces"
+            value = "http://localhost:4318/v1/traces"
           },
           {
             name  = "OTEL_SERVICE_NAME"
@@ -157,7 +165,7 @@ locals {
     task_api = jsonencode([
       {
         name      = var.service_names["task_api"]
-        image     = "124355645722.dkr.ecr.eu-west-1.amazonaws.com/task-service:latest"
+        image     = "chrisncs/task-api:latest"
         essential = true
         portMappings = [
           {
@@ -169,7 +177,7 @@ locals {
         environment = [
           {
             name  = "SPRING_DATASOURCE_HOST_URL"
-            value = "jdbc:postgresql://${module.rds.db_instance_endpoint}/${var.db_name}"
+            value = "${local.primary_db_instance.endpoint}/${var.db_name}"
           },
           {
             name  = "SPRING_DATASOURCE_USERNAME"
@@ -185,11 +193,11 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "${var.service_names["ckafka"]}:${var.port["ckafka"]}"
           },
           {
             name  = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-            value = "http://${module.alb.lb_dns_name}:${var.port["jaeger"]}/v1/traces"
+            value = "http://localhost:4318/v1/traces"
           },
           {
             name  = "OTEL_SERVICE_NAME"
@@ -211,7 +219,7 @@ locals {
     ckafka = jsonencode([
       {
         name      = var.service_names["ckafka"]
-        image     = "124355645722.dkr.ecr.eu-west-1.amazonaws.com/kafka-service:latest"
+        image     = "apache/kafka:latest"
         essential = true
         portMappings = [
           {
@@ -226,10 +234,6 @@ locals {
           }
         ]
         environment = [
-          {
-            name  = "KAFKA_KRAFT_MODE"
-            value = "true"
-          },
           {
             name  = "KAFKA_NODE_ID"
             value = "1"
@@ -255,32 +259,8 @@ locals {
             value = "CONTROLLER"
           },
           {
-            name  = "KAFKA_INTER_BROKER_LISTENER_NAME"
-            value = "PLAINTEXT"
-          },
-          {
-            name  = "KAFKA_AUTO_CREATE_TOPICS_ENABLE"
-            value = "true"
-          },
-          {
-            name  = "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR"
-            value = "1"
-          },
-          {
-            name  = "KAFKA_LOG_RETENTION_HOURS"
-            value = "168"
-          },
-          {
-            name  = "KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS"
-            value = "0"
-          },
-          {
             name  = "KAFKA_LOG_DIRS"
             value = "/var/lib/kafka/data"
-          },
-          {
-            name  = "CLUSTER_ID"
-            value = "${random_id.cluster_id.hex}"
           }
         ]
         # mountPoints = [

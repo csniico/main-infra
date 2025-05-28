@@ -4,7 +4,7 @@
 terraform {
   backend "s3" {
     bucket       = "phase2cap-124355645722"
-    key          = "terraform.tfstate"
+    key          = "terraform-dr.tfstate" # For DR - Manual edit
     region       = "eu-west-1"
     encrypt      = true
     use_lockfile = true

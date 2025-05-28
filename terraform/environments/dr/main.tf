@@ -348,7 +348,7 @@ module "jenkins_asg" {
   image_id      = "ami-03d8b47244d950bbb" # Amazon Linux 2023 AMI
   instance_type = var.instance_types["jenkins"]
   user_data = templatefile("${path.module}/../../../scripts/user-data/jenkins.sh", {
-    efs_id      = module.efs.file_system_id
+    efs_id      = local.primary_efs_file_system.id
     ap_id       = module.efs.access_point_ids["jenkins"]
     jenkins_uid = var.jenkins_id
     jenkins_gid = var.jenkins_id
@@ -394,9 +394,8 @@ module "monitoring_asg" {
   # Launch template configuration
   image_id      = "ami-03d8b47244d950bbb" # Amazon Linux 2023 AMI
   instance_type = var.instance_types["monitoring"]
-  key_name = "${local.name}-monitoring-key"
   user_data = templatefile("${path.module}/../../../scripts/user-data/monitoring.sh", {
-    efs_id     = module.efs.file_system_id
+    efs_id     = local.primary_efs_file_system.id
     ap_id      = module.efs.access_point_ids["monitoring"]
     docker_uid = var.monitoring_id
     docker_gid = var.monitoring_id
@@ -438,8 +437,10 @@ module "monitoring_asg" {
 module "efs" {
   source = "../../modules/efs"
 
-  name               = "${local.name}-efs"
-  vpc_id             = module.vpc.vpc_id
+  create_file_system    = false
+  name                  = "${local.name}-efs"
+  source_file_system_id = local.primary_efs_file_system.id
+
   subnet_ids         = module.vpc.private_subnet_ids
   security_group_ids = [module.efs_sg.security_group_id]
 
@@ -465,10 +466,6 @@ module "efs" {
     }
   ]
 
-  # Enable replication
-  enable_replication             = true
-  replication_destination_region = var.dr_region
-
   tags = var.tags
 }
 
@@ -489,66 +486,66 @@ module "alb" {
 
   # Target groups
   target_groups = {
-    notification_service = {
-      name        = "notification-service"
-      protocol    = "HTTP"
-      port        = var.port["notification_service"]
-      target_type = "ip"
-      health_check = {
-        enabled             = true
-        interval            = 30
-        path                = "/actuator/health"
-        port                = "traffic-port"
-        healthy_threshold   = 3
-        unhealthy_threshold = 3
-        timeout             = 5
-      }
-    }
-    user_service = {
-      name        = "user-service"
-      protocol    = "HTTP"
-      port        = var.port["user_service"]
-      target_type = "ip"
-      health_check = {
-        enabled             = true
-        interval            = 30
-        path                = "/api/v1"
-        port                = "traffic-port"
-        healthy_threshold   = 3
-        unhealthy_threshold = 3
-        timeout             = 5
-      }
-    }
-    task_api = {
-      name        = "task-api"
-      protocol    = "HTTP"
-      port        = var.port["task_api"]
-      target_type = "ip"
-      health_check = {
-        enabled             = true
-        interval            = 30
-        path                = "/api/v1/tasks"
-        port                = "traffic-port"
-        healthy_threshold   = 3
-        unhealthy_threshold = 3
-        timeout             = 5
-      }
-    }
-    frontend = {
-      name        = "frontend"
-      protocol    = "HTTP"
-      port        = var.port["frontend"]
-      target_type = "ip"
-      health_check = {
-        enabled             = true
-        interval            = 30
-        path                = "/"
-        port                = "traffic-port"
-        healthy_threshold   = 3
-        unhealthy_threshold = 3
-        timeout             = 5
-      }
-    }
+    # notification_service = {
+    #   name        = "notification-service"
+    #   protocol    = "HTTP"
+    #   port        = var.port["notification_service"]
+    #   target_type = "ip"
+    #   health_check = {
+    #     enabled             = true
+    #     interval            = 30
+    #     path                = "/actuator/health/"
+    #     port                = "traffic-port"
+    #     healthy_threshold   = 3
+    #     unhealthy_threshold = 3
+    #     timeout             = 5
+    #   }
+    # }
+    # user_service = {
+    #   name        = "user-service"
+    #   protocol    = "HTTP"
+    #   port        = var.port["user_service"]
+    #   target_type = "ip"
+    #   health_check = {
+    #     enabled             = true
+    #     interval            = 30
+    #     path                = "/api/v1/"
+    #     port                = "traffic-port"
+    #     healthy_threshold   = 3
+    #     unhealthy_threshold = 3
+    #     timeout             = 5
+    #   }
+    # }
+    # task_api = {
+    #   name        = "task-api"
+    #   protocol    = "HTTP"
+    #   port        = var.port["task_api"]
+    #   target_type = "ip"
+    #   health_check = {
+    #     enabled             = true
+    #     interval            = 30
+    #     path                = "/api/v1/tasks/"
+    #     port                = "traffic-port"
+    #     healthy_threshold   = 3
+    #     unhealthy_threshold = 3
+    #     timeout             = 5
+    #   }
+    # }
+    # frontend = {
+    #   name        = "frontend"
+    #   protocol    = "HTTP"
+    #   port        = var.port["frontend"]
+    #   target_type = "ip"
+    #   health_check = {
+    #     enabled             = true
+    #     interval            = 30
+    #     path                = "/"
+    #     port                = "traffic-port"
+    #     healthy_threshold   = 3
+    #     unhealthy_threshold = 3
+    #     timeout             = 5
+    #   }
+    # }
     jenkins = {
       name        = "jenkins"
       protocol    = "HTTP"
@@ -613,26 +610,26 @@ module "alb" {
 
   # Listeners
   listeners = {
-    notification_service = {
-      port             = var.port["notification_service"]
-      protocol         = "HTTP"
-      target_group_key = "notification_service"
-    }
-    user_service = {
-      port             = var.port["user_service"]
-      protocol         = "HTTP"
-      target_group_key = "user_service"
-    }
-    task_api = {
-      port             = var.port["task_api"]
-      protocol         = "HTTP"
-      target_group_key = "task_api"
-    }
-    frontend = {
-      port             = var.port["frontend"]
-      protocol         = "HTTP"
-      target_group_key = "frontend"
-    }
+    # notification_service = {
+    #   port             = var.port["notification_service"]
+    #   protocol         = "HTTP"
+    #   target_group_key = "notification_service"
+    # }
+    # user_service = {
+    #   port             = var.port["user_service"]
+    #   protocol         = "HTTP"
+    #   target_group_key = "user_service"
+    # }
+    # task_api = {
+    #   port             = var.port["task_api"]
+    #   protocol         = "HTTP"
+    #   target_group_key = "task_api"
+    # }
+    # frontend = {
+    #   port             = var.port["frontend"]
+    #   protocol         = "HTTP"
+    #   target_group_key = "frontend"
+    # }
     jenkins = {
       port             = var.port["jenkins"]
       protocol         = "HTTP"
@@ -707,14 +704,14 @@ module "ecs_service_frontend" {
   subnet_ids         = module.vpc.private_subnet_ids
   security_group_ids = [module.microservices_sg.security_group_id]
 
-  # Load balancer integration
-  load_balancer_config = [
-    {
-      target_group_arn = module.alb.target_group_arns_map["frontend"]
-      container_name   = var.service_names["frontend"]
-      container_port   = var.port["frontend"]
-    }
-  ]
+  # # Load balancer integration
+  # load_balancer_config = [
+  #   {
+  #     target_group_arn = module.alb.target_group_arns_map["frontend"]
+  #     container_name   = var.service_names["frontend"]
+  #     container_port   = var.port["frontend"]
+  #   }
+  # ]
 
   # IAM roles
   task_execution_role_arn = module.ecs_task_execution_role.role_arn
@@ -738,17 +735,17 @@ module "ecs_service_frontend" {
   }
 
   # Service discovery namespace
-  create_service_discovery_namespace      = true
-  vpc_id                                  = module.vpc.vpc_id
-  service_discovery_namespace_name        = var.discovery_namespace["name"]
+  create_service_discovery_namespace = true
+  vpc_id = module.vpc.vpc_id
+  service_discovery_namespace_name = var.discovery_namespace["name"]
   service_discovery_namespace_description = var.discovery_namespace["description"]
-  service_discovery_namespace_type        = var.discovery_namespace["type"]
+  service_discovery_namespace_type = var.discovery_namespace["type"]
 
   # Service discovery service
-  enable_service_discovery       = true
+  enable_service_discovery = true
   service_discovery_service_name = var.service_names["frontend"]
-  service_discovery_dns_ttl      = var.discovery_namespace["dns_ttl"]
-  service_discovery_dns_type     = var.discovery_namespace["dns_type"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
 
   tags = var.tags
 }
@@ -781,14 +778,14 @@ module "ecs_service_notification" {
   task_execution_role_arn = module.ecs_task_execution_role.role_arn
   task_role_arn           = module.ecs_task_role.role_arn
 
-  # Load balancer integration
-  load_balancer_config = [
-    {
-      target_group_arn = module.alb.target_group_arns_map["notification-service"]
-      container_name   = var.service_names["notification_service"]
-      container_port   = var.port["notification_service"]
-    }
-  ]
+  # # Load balancer integration
+  # load_balancer_config = [
+  #   {
+  #     target_group_arn = module.alb.target_group_arns_map["notification-service"]
+  #     container_name   = var.service_names["notification_service"]
+  #     container_port   = var.port["notification_service"]
+  #   }
+  # ]
 
   # Auto scaling
   enable_autoscaling       = true
@@ -803,11 +800,11 @@ module "ecs_service_notification" {
   }
 
   # Service discovery service
-  enable_service_discovery       = true
+  enable_service_discovery = true
   service_discovery_namespace_id = module.ecs_service_frontend.service_discovery_namespace_id
   service_discovery_service_name = var.service_names["notification_service"]
-  service_discovery_dns_ttl      = var.discovery_namespace["dns_ttl"]
-  service_discovery_dns_type     = var.discovery_namespace["dns_type"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
 
   tags = var.tags
 }
@@ -840,20 +837,20 @@ module "ecs_service_user" {
   task_execution_role_arn = module.ecs_task_execution_role.role_arn
   task_role_arn           = module.ecs_task_role.role_arn
 
-  # Load balancer integration
-  load_balancer_config = [
-    {
-      target_group_arn = module.alb.target_group_arns_map["user-service"]
-      container_name   = var.service_names["user_service"]
-      container_port   = var.port["user_service"]
-    }
-  ]
+  # # Load balancer integration
+  # load_balancer_config = [
+  #   {
+  #     target_group_arn = module.alb.target_group_arns_map["user-service"]
+  #     container_name   = var.service_names["user_service"]
+  #     container_port   = var.port["user_service"]
+  #   }
+  # ]
 
   # Auto scaling
-  enable_autoscaling             = true
+  enable_autoscaling       = true
   service_discovery_namespace_id = module.ecs_service_frontend.service_discovery_namespace_id
-  autoscaling_min_capacity       = var.service_min_sizes
-  autoscaling_max_capacity       = var.service_max_sizes
+  autoscaling_min_capacity = var.service_min_sizes
+  autoscaling_max_capacity = var.service_max_sizes
   autoscaling_policies = {
     cpu = {
       policy_type            = "TargetTrackingScaling"
@@ -863,10 +860,10 @@ module "ecs_service_user" {
   }
 
   # Service discovery service
-  enable_service_discovery       = true
+  enable_service_discovery = true
   service_discovery_service_name = var.service_names["user_service"]
-  service_discovery_dns_ttl      = var.discovery_namespace["dns_ttl"]
-  service_discovery_dns_type     = var.discovery_namespace["dns_type"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
 
   tags = var.tags
 }
@@ -899,14 +896,14 @@ module "ecs_service_task_api" {
   task_execution_role_arn = module.ecs_task_execution_role.role_arn
   task_role_arn           = module.ecs_task_role.role_arn
 
-  # Load balancer integration
-  load_balancer_config = [
-    {
-      target_group_arn = module.alb.target_group_arns_map["task-api"]
-      container_name   = var.service_names["task_api"]
-      container_port   = var.port["task_api"]
-    }
-  ]
+  # # Load balancer integration
+  # load_balancer_config = [
+  #   {
+  #     target_group_arn = module.alb.target_group_arns_map["task-api"]
+  #     container_name   = var.service_names["task_api"]
+  #     container_port   = var.port["task_api"]
+  #   }
+  # ]
 
   # Auto scaling
   enable_autoscaling       = true
@@ -920,12 +917,12 @@ module "ecs_service_task_api" {
     }
   }
 
-  # Service discovery service
-  enable_service_discovery       = true
+    # Service discovery service
+  enable_service_discovery = true
   service_discovery_namespace_id = module.ecs_service_frontend.service_discovery_namespace_id
   service_discovery_service_name = var.service_names["task_api"]
-  service_discovery_dns_ttl      = var.discovery_namespace["dns_ttl"]
-  service_discovery_dns_type     = var.discovery_namespace["dns_type"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
 
   tags = var.tags
 }
@@ -976,15 +973,14 @@ module "ecs_service_kafka" {
   # ]
 
   # Service discovery service
-  enable_service_discovery       = true
+  enable_service_discovery = true
   service_discovery_namespace_id = module.ecs_service_frontend.service_discovery_namespace_id
   service_discovery_service_name = var.service_names["ckafka"]
-  service_discovery_dns_ttl      = var.discovery_namespace["dns_ttl"]
-  service_discovery_dns_type     = var.discovery_namespace["dns_type"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
 
   tags = var.tags
 }
-
 # RDS Database
 module "rds" {
   source = "../../modules/rds"
@@ -992,24 +988,12 @@ module "rds" {
   name        = local.name
   environment = var.environment
 
-  # Engine options
-  engine         = var.db_engine
-  engine_version = var.db_engine_version
+  # Replication configuration
+  replicate_source_db           = true
+  source_db_instance_identifier = local.primary_db_instance.db_instance_arn
 
   # Instance configuration
   instance_class = var.db_instance_class
-  multi_az       = true
-
-  # Storage
-  allocated_storage     = var.db_allocated_storage
-  max_allocated_storage = var.db_allocated_storage * 2
-  storage_type          = "gp3"
-  storage_encrypted     = true
-
-  # Authentication
-  db_name  = var.db_name
-  username = var.db_username
-  password = var.db_password
 
   # Network
   port                   = var.port["postgres"]

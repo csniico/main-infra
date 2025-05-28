@@ -143,7 +143,7 @@ resource "aws_db_instance" "this" {
   deletion_protection = var.deletion_protection
 
   # Manage master user password in Secrets Manager
-  manage_master_user_password   = var.manage_master_user_password
+  manage_master_user_password   = var.manage_master_user_password ? true : null
   master_user_secret_kms_key_id = var.manage_master_user_password ? var.master_user_secret_kms_key_id : null
 
   tags = merge(

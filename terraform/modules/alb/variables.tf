@@ -87,7 +87,7 @@ variable "security_group_ids" {
 variable "create_target_group" {
   description = "Controls if target group should be created"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "target_group_name" {
@@ -166,7 +166,7 @@ variable "health_check" {
 variable "create_listener" {
   description = "Controls if listener should be created"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "listeners" {

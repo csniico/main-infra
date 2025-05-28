@@ -1,6 +1,6 @@
 # AWS EFS (Elastic File System) Terraform Module
 
-This module provisions AWS Elastic File System (EFS) resources with mount targets, access points, and security groups, following AWS best practices and the principle of separation of concerns.
+This module provisions AWS Elastic File System (EFS) resources with mount targets, access points, and security groups, following AWS best practices and the principle of separation of concerns. The module provides flexible configuration options for creating new EFS file systems or extending existing ones with additional mount targets and access points.
 
 ## Features
 
@@ -8,14 +8,15 @@ This module provisions AWS Elastic File System (EFS) resources with mount target
 - Supports all performance modes (generalPurpose, maxIO)
 - Supports all throughput modes (bursting, provisioned, elastic)
 - Enables encryption with AWS managed or customer managed KMS keys
-- Creates mount targets in specified subnets
-- Creates access points with custom settings
-- Utilizes security groups for mount targets
-- Supports replication to another region
-- Supports lifecycle policies for infrequent access (IA) storage class
-- Supports file system replication
-- Supports automatic backups
-- Highly customizable through variables
+- Creates mount targets in specified subnets across multiple AZs
+- Creates access points with custom POSIX user/group settings
+- Supports security group attachment for network access control
+- Supports replication to another AWS region for disaster recovery
+- Supports lifecycle policies for infrequent access (IA) storage class transitions
+- Supports automatic backups with configurable policies
+- Flexible creation flags to create only required resources
+- Highly customizable through variables with sensible defaults
+- Generation of unique creation tokens to avoid conflicts
 
 ## Usage
 
@@ -114,14 +115,67 @@ module "efs" {
 }
 ```
 
+### Using Existing File System (Mount Targets and Access Points Only)
+
+```terraform
+module "efs_additional_access" {
+  source = "./terraform/modules/efs"
+
+  # Don't create a new file system, use existing one
+  create_file_system    = false
+  source_file_system_id = "fs-0123456789abcdef0"
+  
+  # Create mount targets in different subnets
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.additional_subnet_ids
+  
+  # Create additional access points
+  access_points = [
+    {
+      name                = "logs"
+      root_directory_path = "/logs"
+      owner_uid           = 1002
+      owner_gid           = 1002
+      permissions         = "0755"
+      posix_user_uid      = 1002
+      posix_user_gid      = 1002
+    }
+  ]
+  
+  tags = {
+    Environment = "production"
+    Project     = "additional-access"
+  }
+}
+```
+
+### Minimal Configuration
+
+```terraform
+module "efs_minimal" {
+  source = "./terraform/modules/efs"
+
+  name       = "simple-storage"
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+  
+  tags = {
+    Environment = "dev"
+  }
+}
+```
+
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|----------|
-| name | Name of the EFS file system | `string` | n/a | yes |
+| name | Name of the EFS file system | `string` | `null` | no |
 | name_prefix | Prefix to add to the EFS file system name | `string` | `null` | no |
-| vpc_id | ID of the VPC where the EFS file system will be created | `string` | n/a | yes |
-| subnet_ids | List of subnet IDs where mount targets will be created | `list(string)` | n/a | yes |
+| create_file_system | Whether to create an EFS file system | `bool` | `true` | no |
+| create_mount_targets | Whether to create mount targets for the EFS file system | `bool` | `true` | no |
+| create_access_points | Whether to create access points for the EFS file system | `bool` | `true` | no |
+| vpc_id | ID of the VPC where the EFS file system will be created | `string` | `null` | no |
+| subnet_ids | List of subnet IDs where mount targets will be created | `list(string)` | `null` | no |
 | security_group_ids | List of security group IDs to attach to the mount targets | `list(string)` | `[]` | no |
 | performance_mode | The file system performance mode. Can be 'generalPurpose' or 'maxIO' | `string` | `"generalPurpose"` | no |
 | throughput_mode | Throughput mode for the file system. Can be 'bursting', 'provisioned', or 'elastic' | `string` | `"bursting"` | no |
@@ -136,7 +190,27 @@ module "efs" {
 | enable_replication | Whether to enable replication for the file system | `bool` | `false` | no |
 | replication_destination_region | The AWS Region to replicate the file system to | `string` | `null` | no |
 | replication_destination_kms_key_id | The ARN of the KMS Key to use when encrypting the replicated file system | `string` | `null` | no |
+| source_file_system_id | The ID of the source file system to replicate. If not provided, the source file system will be the one created by this module | `string` | `null` | no |
 | tags | A map of tags to add to all resources | `map(string)` | `{}` | no |
+
+### Access Points Object Structure
+
+The `access_points` variable accepts a list of objects with the following structure:
+
+```hcl
+access_points = [
+  {
+    name                      = string                 # Required: Name of the access point
+    root_directory_path       = optional(string, "/") # Optional: Root directory path (default: "/")
+    owner_uid                 = optional(number)      # Optional: Owner user ID
+    owner_gid                 = optional(number)      # Optional: Owner group ID
+    permissions               = optional(string, "0755") # Optional: Directory permissions (default: "0755")
+    posix_user_uid            = optional(number)      # Optional: POSIX user ID
+    posix_user_gid            = optional(number)      # Optional: POSIX group ID
+    posix_user_secondary_gids = optional(list(number)) # Optional: Secondary group IDs
+  }
+]
+```
 
 ## Outputs
 
@@ -155,9 +229,9 @@ module "efs" {
 | mount_target_ids | The IDs of the mount targets |
 | mount_target_dns_names | The DNS names of the mount targets |
 | mount_target_network_interface_ids | The IDs of the network interfaces created for the mount targets |
-| access_point_ids | Map of access point IDs, keyed by tag AccessPoint |
-| access_point_arns | Map of access point ARNs, keyed by tag AccessPoint |
-| access_points | Map of access points created and their attributes, keyed by tag AccessPoint |
+| access_point_ids | IDs of the access points |
+| access_point_arns | ARNs of the access points |
+| access_points | Map of access points created and their attributes |
 | replication_configuration_destination_file_system_id | The file system ID of the replica |
 
 ## Prerequisites
@@ -165,6 +239,7 @@ module "efs" {
 - AWS account and credentials configured
 - Terraform 1.3.2 or later
 - AWS provider 5.83 or later
+- Random provider 3.5.1 or later
 - VPC with subnets
 - IAM permissions to create EFS resources
 
@@ -178,3 +253,32 @@ module "efs" {
 - Replication creates a new EFS file system in the destination region
 - Access points provide application-specific entry points to the EFS file system
 - Lifecycle policies can be used to transition files to infrequent access storage class to reduce costs
+
+## Security Considerations
+
+- Security groups must allow NFS traffic (port 2049) from EC2 instances
+- Use VPC endpoint for EFS if instances are in private subnets without internet access
+- Enable encryption for sensitive data
+- Consider using IAM policies for access control in addition to POSIX permissions
+- Access points provide an additional layer of access control
+
+## Best Practices
+
+- Use multiple availability zones for high availability
+- Enable automatic backups for data protection
+- Use appropriate performance mode based on your use case:
+  - `generalPurpose`: Lower latency per operation, up to 7,000 file operations per second
+  - `maxIO`: Higher levels of aggregate throughput and operations per second (over 7,000)
+- Choose throughput mode based on requirements:
+  - `bursting`: Throughput scales with file system size
+  - `provisioned`: Specify throughput independent of storage size
+  - `elastic`: Automatically scales throughput up or down based on workload
+- Use lifecycle policies to automatically move files to Infrequent Access storage class
+- Monitor file system performance using CloudWatch metrics
+
+## Common Issues and Troubleshooting
+
+- **Mount timeouts**: Check security group rules and NFS port 2049 accessibility
+- **Permission denied**: Verify POSIX user/group settings in access points
+- **Performance issues**: Consider switching from `generalPurpose` to `maxIO` performance mode
+- **High costs**: Implement lifecycle policies to move infrequently accessed files to IA storage class
