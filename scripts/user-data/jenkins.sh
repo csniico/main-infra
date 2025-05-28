@@ -8,20 +8,8 @@ JENKINS_UID="${jenkins_uid}"
 JENKINS_GID="${jenkins_gid}"
 JENKINS_HOME=/var/lib/jenkins
 
-# Install updates, Java (Jenkins dependency), and EFS utils
-sudo DEBIAN_FRONTEND=noninteractive apt update -y && \
-sudo DEBIAN_FRONTEND=noninteractive apt install -y \
-  -o Dpkg::Options::="--force-confdef" \
-  -o Dpkg::Options::="--force-confold" \
-  fontconfig openjdk-17-jre wget gnupg2 apt-transport-https
-
-# Install amazon-efs-utils from source
-git clone https://github.com/aws/efs-utils
-cd efs-utils
-./build-deb.sh
-sudo apt-get -y install ./build/amazon-efs-utils*deb
-cd ..
-rm -rf efs-utils
+# Install amazon-efs-utils
+sudo yum install -y amazon-efs-utils
 
 # Create jenkins group with specific GID
 sudo groupadd -g $${JENKINS_GID} jenkins
@@ -36,16 +24,15 @@ sudo mount -t efs -o tls,accesspoint=$${ACCESS_POINT_ID} $${EFS_ID}:/ $${MOUNT_D
 # Make it persistent
 echo "$${EFS_ID}:/ $${MOUNT_DIR} efs _netdev,tls,accesspoint=$${ACCESS_POINT_ID} 0 0" | sudo tee -a /etc/fstab
 
-# Install Jenkins
-sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
-  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
+# Install updates, Java (Jenkins dependency), EFS utils, and Jenkins
+sudo wget -O /etc/yum.repos.d/jenkins.repo \
+    https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
 
-sudo DEBIAN_FRONTEND=noninteractive apt update -y && \
-sudo DEBIAN_FRONTEND=noninteractive apt install -y \
-  -o Dpkg::Options::="--force-confdef" \
-  -o Dpkg::Options::="--force-confold" \
-  jenkins
+sudo rpm --import https://yum.corretto.aws/corretto.key
+sudo curl -Lo /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo
+
+sudo yum upgrade -y && sudo yum install -y fontconfig java-17-amazon-corretto jenkins
 
 # Stop Jenkins in case it started
 sudo systemctl stop jenkins
@@ -55,10 +42,10 @@ sudo rm -rf $${JENKINS_HOME}
 sudo ln -s $${MOUNT_DIR} $${JENKINS_HOME}
 sudo chown -R jenkins:jenkins $${JENKINS_HOME}
 
+# Disable tmp.mount to avoid conflicts with EFS mount
+sudo systemctl mask tmp.mount
+
 # Enable and start Jenkins
 sudo systemctl enable jenkins
 sudo systemctl start jenkins
-
-# Clean up
-sudo DEBIAN_FRONTEND=noninteractive apt clean -y
-sudo rm -rf /var/lib/apt/lists/*
+sudo systemctl daemon-reload
