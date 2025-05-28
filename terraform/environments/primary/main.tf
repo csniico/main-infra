@@ -20,17 +20,35 @@ module "alb_sg" {
   name   = "${local.name}-alb"
   vpc_id = module.vpc.vpc_id
 
-  # Allow HTTP/HTTPS from anywhere
+  # Allow traffic for microservices
   ingress_with_cidr_blocks = {
-    http = {
-      from_port   = 80
-      to_port     = 80
+    task_api = {
+      from_port   = var.port["task_api"]
+      to_port     = var.port["task_api"]
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
     }
-    https = {
-      from_port   = 443
-      to_port     = 443
+    user_service = {
+      from_port   = var.port["user_service"]
+      to_port     = var.port["user_service"]
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+    notification_service = {
+      from_port   = var.port["notification_service"]
+      to_port     = var.port["notification_service"]
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+    frontend = {
+      from_port   = var.port["frontend"]
+      to_port     = var.port["frontend"]
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+    jenkins = {
+      from_port   = var.port["jenkins"]
+      to_port     = var.port["jenkins"]
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
     }
@@ -55,20 +73,23 @@ module "jenkins_sg" {
   name   = "${local.name}-jenkins"
   vpc_id = module.vpc.vpc_id
 
-  # Allow HTTP from everywhere
   ingress_with_cidr_blocks = {
-    http = {
-      from_port   = 8080
-      to_port     = 8080
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
     # Allow SSH from everywhere
     ssh = {
       from_port   = 22
       to_port     = 22
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
+  # Allow traffic from ALB
+  ingress_with_source_security_group_id = {
+    alb = {
+      from_port                = 0
+      to_port                  = 0
+      protocol                 = "-1"
+      source_security_group_id = module.alb_sg.security_group_id
     }
   }
 
@@ -91,34 +112,31 @@ module "monitoring_sg" {
   name   = "${local.name}-monitoring"
   vpc_id = module.vpc.vpc_id
 
-  # Allow prometheus from everywhere
   ingress_with_cidr_blocks = {
-    prometheus = {
-      from_port   = 9090
-      to_port     = 9090
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-    # Allow grafana from everywhere
-    grafana = {
-      from_port   = 3000
-      to_port     = 3000
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-    # Allow jaeger from everywhere
-    jaeger = {
-      from_port   = 8080
-      to_port     = 8080
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
     # Allow SSH from everywhere
     ssh = {
       from_port   = 22
       to_port     = 22
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
+
+  # Allow traffic from microservices
+  ingress_with_source_security_group_id = {
+    microservices = {
+      from_port                = 0
+      to_port                  = 0
+      protocol                 = "-1"
+      source_security_group_id = module.microservices_sg.security_group_id
+    }
+    # Allow traffic from ALB
+    alb = {
+      from_port                = 0
+      to_port                  = 0
+      protocol                 = "-1"
+      source_security_group_id = module.alb_sg.security_group_id
     }
   }
 
@@ -135,18 +153,57 @@ module "monitoring_sg" {
   tags = var.tags
 }
 
-module "ecs_frontend_sg" {
+module "db_sg" {
   source = "../../modules/security-group"
 
-  name   = "${local.name}-ecs-frontend"
+  name   = "${local.name}-db"
   vpc_id = module.vpc.vpc_id
 
-  # Allow HTTP from ALB
+  # Allow PostgreSQL from microservices
   ingress_with_source_security_group_id = {
-    http = {
-      from_port                = 80
-      to_port                  = 80
+    postgres = {
+      from_port                = var.port["postgres"]
+      to_port                  = var.port["postgres"]
       protocol                 = "tcp"
+      source_security_group_id = module.microservices_sg.security_group_id
+    }
+  }
+
+  # Allow all outbound traffic
+  egress_with_cidr_blocks = {
+    all = {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
+  tags = var.tags
+}
+
+module "microservices_sg" {
+  source = "../../modules/security-group"
+
+  name   = "${local.name}-microservices"
+  vpc_id = module.vpc.vpc_id
+
+  # Allow traffic between microservices
+  ingress_with_self = {
+    self = {
+      from_port = 0
+      to_port   = 0
+      protocol  = "-1"
+      self      = true
+    }
+  }
+
+  # Allow traffic from ALB
+  ingress_with_source_security_group_id = {
+    alb = {
+      from_port                = 0
+      to_port                  = 0
+      protocol                 = "-1"
       source_security_group_id = module.alb_sg.security_group_id
     }
     # Allow monitoring from monitoring security group
@@ -171,67 +228,25 @@ module "ecs_frontend_sg" {
   tags = var.tags
 }
 
-module "ecs_backend_sg" {
-  source = "../../modules/security-group"
-
-  name   = "${local.name}-ecs-backend"
-  vpc_id = module.vpc.vpc_id
-
-  # Allow traffic from ecs frontend security group
-  ingress_with_source_security_group_id = {
-    ecs_frontend = {
-      from_port                = 8080
-      to_port                  = 8080
-      protocol                 = "tcp"
-      source_security_group_id = module.ecs_frontend_sg.security_group_id
-    }
-    # Allow monitoring from monitoring security group
-    monitoring = {
-      from_port                = 0
-      to_port                  = 0
-      protocol                 = "-1"
-      source_security_group_id = module.monitoring_sg.security_group_id
-    }
-  }
-
-  # Allow all outbound traffic
-  egress_with_cidr_blocks = {
-    all = {
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-
-  tags = var.tags
-}
-
-module "db_sg" {
-  source = "../../modules/security-group"
-
-  name   = "${local.name}-db"
-  vpc_id = module.vpc.vpc_id
-
-  # No outbound traffic needed for database
-  egress_with_cidr_blocks = {}
-
-  tags = var.tags
-}
-
 module "efs_sg" {
   source = "../../modules/security-group"
 
   name   = "${local.name}-efs"
   vpc_id = module.vpc.vpc_id
 
-  # Allow NFS from jenkins security group
+  # Allow NFS from jenkins and monitoring security group
   ingress_with_source_security_group_id = {
     nfs_jenkins = {
       from_port                = 2049
       to_port                  = 2049
       protocol                 = "tcp"
       source_security_group_id = module.jenkins_sg.security_group_id
+    }
+    nfs_monitoring = {
+      from_port                = 2049
+      to_port                  = 2049
+      protocol                 = "tcp"
+      source_security_group_id = module.monitoring_sg.security_group_id
     }
   }
 
