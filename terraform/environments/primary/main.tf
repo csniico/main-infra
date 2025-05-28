@@ -6,9 +6,9 @@ module "vpc" {
   vpc_cidr             = var.vpc_cidr
   public_subnets_cidr  = var.public_subnets_cidr
   private_subnets_cidr = var.private_subnets_cidr
-  region               = var.region
   az_count             = var.az_count
-  single_nat_gateway   = false # Use one NAT Gateway per AZ for high availability
+  single_nat_gateway   = true
+  create_subnet_types  = ["public", "private"]
 
   tags = var.tags
 }
@@ -264,10 +264,10 @@ module "efs_sg" {
 }
 
 # IAM Roles
-module "ec2_iam" {
+module "ec2_monitoring_iam" {
   source = "../../modules/iam"
 
-  name = "${local.name}-ec2"
+  name = "${local.name}-ec2-monitoring"
 
   # Role configuration
   trusted_role_services = ["ec2.amazonaws.com"]
@@ -276,6 +276,27 @@ module "ec2_iam" {
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
     "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  ]
+
+  # Create instance profile
+  create_instance_profile = true
+
+  tags = var.tags
+}
+
+module "ec2_jenkins_iam" {
+  source = "../../modules/iam"
+
+  name = "${local.name}-ec2-jenkins"
+
+  # Role configuration
+  trusted_role_services = ["ec2.amazonaws.com"]
+
+  # Attach managed policies
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
   ]
 
   # Create instance profile
@@ -335,7 +356,7 @@ module "jenkins_asg" {
   })
 
   # Use IAM instance profile from IAM module
-  iam_instance_profile_name = module.ec2_iam.instance_profile_name
+  iam_instance_profile_name = module.ec2_jenkins_iam.instance_profile_name
 
   # Use security groups from security-group module
   security_group_ids = [module.jenkins_sg.security_group_id]
@@ -368,7 +389,7 @@ module "monitoring_asg" {
   })
 
   # Use IAM instance profile from IAM module
-  iam_instance_profile_name = module.ec2_iam.instance_profile_name
+  iam_instance_profile_name = module.ec2_monitoring_iam.instance_profile_name
 
   # Use security groups from security-group module
   security_group_ids = [module.monitoring_sg.security_group_id]
