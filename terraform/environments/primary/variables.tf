@@ -198,6 +198,18 @@ variable "service_max_sizes" {
   default     = 3
 }
 
+variable "discovery_namespace" {
+  description = "Service discovery namespace"
+  type        = map(any)
+  default = {
+    "name"        = "primary-services-namespace"
+    "description" = "Services discovery namespace"
+    "type"        = "DNS_PRIVATE"
+    "dns_ttl"    = 60
+    "dns_type"    = "A"
+  }
+}
+
 # Tags
 variable "tags" {
   description = "Tags to apply to all resources"

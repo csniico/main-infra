@@ -736,6 +736,19 @@ module "ecs_service_frontend" {
     }
   }
 
+  # Service discovery namespace
+  create_service_discovery_namespace = true
+  vpc_id = module.vpc.vpc_id
+  service_discovery_namespace_name = var.discovery_namespace["name"]
+  service_discovery_namespace_description = var.discovery_namespace["description"]
+  service_discovery_namespace_type = var.discovery_namespace["type"]
+
+  # Service discovery service
+  enable_service_discovery = true
+  service_discovery_service_name = var.service_names["frontend"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
+
   tags = var.tags
 }
 
@@ -788,6 +801,13 @@ module "ecs_service_notification" {
     }
   }
 
+  # Service discovery service
+  enable_service_discovery = true
+  service_discovery_namespace_id = module.ecs_service_frontend.service_discovery_namespace_id
+  service_discovery_service_name = var.service_names["notification_service"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
+
   tags = var.tags
 }
 
@@ -830,6 +850,7 @@ module "ecs_service_user" {
 
   # Auto scaling
   enable_autoscaling       = true
+  service_discovery_namespace_id = module.ecs_service_frontend.service_discovery_namespace_id
   autoscaling_min_capacity = var.service_min_sizes
   autoscaling_max_capacity = var.service_max_sizes
   autoscaling_policies = {
@@ -839,6 +860,12 @@ module "ecs_service_user" {
       target_value           = 70
     }
   }
+
+  # Service discovery service
+  enable_service_discovery = true
+  service_discovery_service_name = var.service_names["user_service"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
 
   tags = var.tags
 }
@@ -892,6 +919,13 @@ module "ecs_service_task_api" {
     }
   }
 
+    # Service discovery service
+  enable_service_discovery = true
+  service_discovery_namespace_id = module.ecs_service_frontend.service_discovery_namespace_id
+  service_discovery_service_name = var.service_names["task_api"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
+
   tags = var.tags
 }
 
@@ -939,6 +973,13 @@ module "ecs_service_kafka" {
   #     }
   #   }
   # ]
+
+  # Service discovery service
+  enable_service_discovery = true
+  service_discovery_namespace_id = module.ecs_service_frontend.service_discovery_namespace_id
+  service_discovery_service_name = var.service_names["ckafka"]
+  service_discovery_dns_ttl = var.discovery_namespace["dns_ttl"]
+  service_discovery_dns_type = var.discovery_namespace["dns_type"]
 
   tags = var.tags
 }

@@ -115,7 +115,7 @@ locals {
         environment = [
           {
             name  = "SPRING_DATASOURCE_HOST_URL"
-            value = "${module.rds.db_instance_endpoint}/${var.db_name}"
+            value = "jdbc:postgresql://${module.rds.db_instance_endpoint}/${var.db_name}"
           },
           {
             name  = "SPRING_DATASOURCE_USERNAME"
@@ -169,7 +169,7 @@ locals {
         environment = [
           {
             name  = "SPRING_DATASOURCE_HOST_URL"
-            value = "${module.rds.db_instance_endpoint}/${var.db_name}"
+            value = "jdbc:postgresql://${module.rds.db_instance_endpoint}/${var.db_name}"
           },
           {
             name  = "SPRING_DATASOURCE_USERNAME"
