@@ -44,6 +44,14 @@ resource "aws_ecs_service" "this" {
     }
   }
 
+  # Service Discovery
+  dynamic "service_registries" {
+    for_each = var.enable_service_discovery ? [1] : []
+    content {
+      registry_arn = aws_service_discovery_service.this[0].arn
+    }
+  }
+
   # Ignore changes to desired_count if autoscaling is enabled
   lifecycle {
     ignore_changes = [

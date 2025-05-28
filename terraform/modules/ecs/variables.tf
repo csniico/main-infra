@@ -254,6 +254,81 @@ variable "autoscaling_policies" {
   default     = {}
 }
 
+# Service Discovery
+variable "create_service_discovery_namespace" {
+  description = "Controls if service discovery namespace should be created"
+  type        = bool
+  default     = false
+}
+
+variable "service_discovery_namespace_name" {
+  description = "Name of the service discovery namespace"
+  type        = string
+  default     = null
+}
+
+variable "service_discovery_namespace_description" {
+  description = "Description of the service discovery namespace"
+  type        = string
+  default     = null
+}
+
+variable "service_discovery_namespace_type" {
+  description = "Type of the service discovery namespace (DNS_PRIVATE or DNS_PUBLIC)"
+  type        = string
+  default     = "DNS_PRIVATE"
+  validation {
+    condition     = contains(["DNS_PRIVATE", "DNS_PUBLIC"], var.service_discovery_namespace_type)
+    error_message = "The service discovery namespace type must be either 'DNS_PRIVATE' or 'DNS_PUBLIC'."
+  }
+}
+
+variable "vpc_id" {
+  description = "VPC ID for private DNS namespace (required when namespace_type is DNS_PRIVATE)"
+  type        = string
+  default     = null
+}
+
+variable "enable_service_discovery" {
+  description = "Controls if service discovery should be enabled for the ECS service"
+  type        = bool
+  default     = false
+}
+
+variable "service_discovery_service_name" {
+  description = "Name of the service discovery service"
+  type        = string
+  default     = null
+}
+
+variable "service_discovery_dns_ttl" {
+  description = "TTL for the DNS records in the service discovery service"
+  type        = number
+  default     = 60
+}
+
+variable "service_discovery_dns_type" {
+  description = "Type of DNS record for service discovery (A or AAAA)"
+  type        = string
+  default     = "A"
+  validation {
+    condition     = contains(["A", "AAAA"], var.service_discovery_dns_type)
+    error_message = "The service discovery DNS type must be either 'A' or 'AAAA'."
+  }
+}
+
+variable "service_discovery_failure_threshold" {
+  description = "Number of consecutive health check failures required before considering the target unhealthy"
+  type        = number
+  default     = 1
+}
+
+variable "service_discovery_namespace_id" {
+  description = "ID of an existing service discovery namespace to use (if not creating a new one)"
+  type        = string
+  default     = null
+}
+
 # Tags
 variable "tags" {
   description = "Tags to apply to all resources"

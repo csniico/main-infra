@@ -62,3 +62,51 @@ output "autoscaling_policies" {
   description = "Map of Auto Scaling Policies and their ARNs"
   value       = var.create_service && var.enable_autoscaling ? { for k, v in aws_appautoscaling_policy.this : k => v.arn } : null
 }
+
+# Service Discovery Outputs
+output "service_discovery_namespace_id" {
+  description = "The ID of the service discovery namespace"
+  value = var.create_service_discovery_namespace ? (
+    var.service_discovery_namespace_type == "DNS_PRIVATE" ?
+    aws_service_discovery_private_dns_namespace.this[0].id :
+    aws_service_discovery_public_dns_namespace.this[0].id
+  ) : null
+}
+
+output "service_discovery_namespace_arn" {
+  description = "The ARN of the service discovery namespace"
+  value = var.create_service_discovery_namespace ? (
+    var.service_discovery_namespace_type == "DNS_PRIVATE" ?
+    aws_service_discovery_private_dns_namespace.this[0].arn :
+    aws_service_discovery_public_dns_namespace.this[0].arn
+  ) : null
+}
+
+output "service_discovery_namespace_name" {
+  description = "The name of the service discovery namespace"
+  value = var.create_service_discovery_namespace ? (
+    var.service_discovery_namespace_type == "DNS_PRIVATE" ?
+    aws_service_discovery_private_dns_namespace.this[0].name :
+    aws_service_discovery_public_dns_namespace.this[0].name
+  ) : null
+}
+
+output "service_discovery_namespace_hosted_zone" {
+  description = "The hosted zone ID of the service discovery namespace"
+  value       = var.create_service_discovery_namespace && var.service_discovery_namespace_type == "DNS_PRIVATE" ? aws_service_discovery_private_dns_namespace.this[0].hosted_zone : null
+}
+
+output "service_discovery_service_id" {
+  description = "The ID of the service discovery service"
+  value       = var.enable_service_discovery ? aws_service_discovery_service.this[0].id : null
+}
+
+output "service_discovery_service_arn" {
+  description = "The ARN of the service discovery service"
+  value       = var.enable_service_discovery ? aws_service_discovery_service.this[0].arn : null
+}
+
+output "service_discovery_service_name" {
+  description = "The name of the service discovery service"
+  value       = var.enable_service_discovery ? aws_service_discovery_service.this[0].name : null
+}

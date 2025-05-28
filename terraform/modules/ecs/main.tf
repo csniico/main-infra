@@ -91,3 +91,67 @@ resource "aws_cloudwatch_log_group" "this" {
     }
   )
 }
+
+# Service Discovery Private DNS Namespace
+resource "aws_service_discovery_private_dns_namespace" "this" {
+  count = var.create_service_discovery_namespace && var.service_discovery_namespace_type == "DNS_PRIVATE" ? 1 : 0
+
+  name        = local.service_discovery_namespace_name
+  description = var.service_discovery_namespace_description
+  vpc         = var.vpc_id
+
+  tags = merge(
+    var.tags,
+    {
+      Name = local.service_discovery_namespace_name
+    }
+  )
+}
+
+# Service Discovery Public DNS Namespace
+resource "aws_service_discovery_public_dns_namespace" "this" {
+  count = var.create_service_discovery_namespace && var.service_discovery_namespace_type == "DNS_PUBLIC" ? 1 : 0
+
+  name        = local.service_discovery_namespace_name
+  description = var.service_discovery_namespace_description
+
+  tags = merge(
+    var.tags,
+    {
+      Name = local.service_discovery_namespace_name
+    }
+  )
+}
+
+# Service Discovery Service
+resource "aws_service_discovery_service" "this" {
+  count = var.enable_service_discovery ? 1 : 0
+
+  name         = local.service_discovery_service_name
+  namespace_id = local.service_discovery_namespace_id
+
+  dns_config {
+    namespace_id = local.service_discovery_namespace_id
+
+    dns_records {
+      ttl  = var.service_discovery_dns_ttl
+      type = var.service_discovery_dns_type
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+
+  dynamic "health_check_custom_config" {
+    for_each = var.service_discovery_namespace_type == "DNS_PRIVATE" ? [1] : []
+    content {
+      failure_threshold = var.service_discovery_failure_threshold
+    }
+  }
+
+  tags = merge(
+    var.tags,
+    {
+      Name = local.service_discovery_service_name
+    }
+  )
+}
