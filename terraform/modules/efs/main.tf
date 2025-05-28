@@ -36,6 +36,11 @@ resource "aws_efs_file_system" "this" {
     }
   }
 
+  # Protection settings
+  protection {
+    replication_overwrite = var.enable_replication_overwrite ? "ENABLED" : "DISABLED"
+  }
+
   tags = merge(
     var.tags,
     {

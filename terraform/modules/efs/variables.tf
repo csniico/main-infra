@@ -89,6 +89,13 @@ variable "kms_key_id" {
   default     = null
 }
 
+# Protection
+variable "enable_replication_overwrite" {
+  description = "Whether to enable overwrite protection for the file system replication"
+  type        = bool
+  default     = true
+}
+
 # Lifecycle Policies
 variable "transition_to_ia" {
   description = "Describes the period of time that a file is not accessed, after which it transitions to IA storage. Can be AFTER_7_DAYS, AFTER_14_DAYS, AFTER_30_DAYS, AFTER_60_DAYS, or AFTER_90_DAYS"
