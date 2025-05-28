@@ -85,6 +85,12 @@ variable "asg_desired_capacities" {
   }
 }
 
+variable "key_name" {
+  description = "SSH key pair name for EC2 instances"
+  type        = string
+  default     = "capstone-2-dr"
+}
+
 # EFS
 variable "jenkins_id" {
   description = "UID and GID for Jenkins user and group"
@@ -160,9 +166,9 @@ variable "port" {
   type        = map(number)
   default = {
     "jenkins"    = 8080
-    "jaeger"     = 8080
-    "prometheus" = 9090
-    "grafana"    = 3000
+    "prometheus" = 7000
+    "grafana"    = 7001
+    "jaeger"     = 7002
     "postgres"   = 5432
     # microservices
     "frontend"             = 3000
