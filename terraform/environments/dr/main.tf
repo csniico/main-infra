@@ -448,6 +448,7 @@ module "efs" {
 
   subnet_ids         = module.vpc.private_subnet_ids
   security_group_ids = [module.efs_sg.security_group_id]
+  enable_replication_overwrite = false
 
   # Access points
   access_points = [
