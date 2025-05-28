@@ -25,6 +25,29 @@ resource "aws_launch_template" "this" {
     }
   }
 
+  dynamic "block_device_mappings" {
+    for_each = local.default_block_device_mappings
+    content {
+      device_name  = block_device_mappings.value.device_name
+      no_device    = lookup(block_device_mappings.value, "no_device", null)
+      virtual_name = lookup(block_device_mappings.value, "virtual_name", null)
+
+      dynamic "ebs" {
+        for_each = lookup(block_device_mappings.value, "ebs", null) != null ? [lookup(block_device_mappings.value, "ebs", null)] : []
+        content {
+          delete_on_termination = lookup(ebs.value, "delete_on_termination", null)
+          encrypted             = lookup(ebs.value, "encrypted", null)
+          iops                  = lookup(ebs.value, "iops", null)
+          kms_key_id            = lookup(ebs.value, "kms_key_id", null)
+          snapshot_id           = lookup(ebs.value, "snapshot_id", null)
+          throughput            = lookup(ebs.value, "throughput", null)
+          volume_size           = lookup(ebs.value, "volume_size", null)
+          volume_type           = lookup(ebs.value, "volume_type", null)
+        }
+      }
+    }
+  }
+
   dynamic "iam_instance_profile" {
     for_each = var.iam_instance_profile_name != null ? [1] : []
     content {

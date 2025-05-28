@@ -12,6 +12,9 @@ This module provisions an AWS Auto Scaling Group with Launch Template, following
 - Supports capacity rebalancing for Spot Instances
 - Customizable metadata options for IMDSv2 compliance
 - Flexible tagging for both ASG and launched instances
+- Support for custom EBS volumes with encryption
+- Conditional resource creation for flexible deployments
+- Integration with multiple availability zones for high availability
 
 ## Usage
 
@@ -119,6 +122,73 @@ module "asg" {
 }
 ```
 
+### Usage with Custom EBS Volumes
+
+```terraform
+module "asg" {
+  source = "./terraform/modules/asg"
+
+  name               = "storage-app"
+  image_id           = "ami-0123456789abcdef0"
+  instance_type      = "t3.large"
+  
+  # Custom EBS volumes
+  block_device_mappings = [
+    {
+      device_name = "/dev/sda1"
+      ebs = {
+        volume_size           = 50
+        volume_type           = "gp3"
+        encrypted             = true
+        delete_on_termination = true
+      }
+    },
+    {
+      device_name = "/dev/sdf"
+      ebs = {
+        volume_size           = 100
+        volume_type           = "gp3"
+        encrypted             = true
+        delete_on_termination = false
+        iops                  = 3000
+        throughput            = 125
+      }
+    }
+  ]
+
+  # Auto scaling group configuration
+  min_size         = 1
+  max_size         = 5
+  desired_capacity = 2
+
+  # Networking
+  vpc_zone_identifier = module.vpc.private_subnet_ids
+  security_group_ids  = [module.asg_sg.security_group_id]
+
+  tags = {
+    Environment = "production"
+    Project     = "storage-app"
+  }
+}
+```
+
+### Minimal Configuration
+
+```terraform
+module "asg_minimal" {
+  source = "./terraform/modules/asg"
+
+  name    = "simple-app"
+  image_id = "ami-0123456789abcdef0"
+  
+  vpc_zone_identifier = module.vpc.private_subnet_ids
+
+  tags = {
+    Environment = "dev"
+  }
+}
+```
+
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -136,6 +206,7 @@ module "asg" {
 | ebs_optimized | If true, the launched EC2 instance will be EBS-optimized | bool | false | no |
 | enable_monitoring | Enables/disables detailed monitoring | bool | true | no |
 | metadata_options | Customize the metadata options for the instance | map(string) | {} | no |
+| block_device_mappings | Specify volumes to attach to the instance besides the volumes specified by the AMI | list(any) | [] | no |
 | iam_instance_profile_name | The name of the IAM instance profile to associate with launched instances | string | null | no |
 | tag_specifications | The tags to apply to the resources during launch | list(any) | [] | no |
 | create_asg | Controls if the Auto Scaling Group should be created | bool | true | no |
@@ -152,6 +223,62 @@ module "asg" {
 | target_group_arns | A list of aws_alb_target_group ARNs, for use with Application Load Balancing | list(string) | [] | no |
 | security_group_ids | A list of security group IDs to associate with the instances | list(string) | [] | no |
 | tags | Tags to apply to all resources | map(string) | {} | no |
+
+### Metadata Options Structure
+
+The `metadata_options` variable accepts a map with the following supported keys:
+
+```hcl
+metadata_options = {
+  http_endpoint               = "enabled"     # "enabled" or "disabled"
+  http_tokens                 = "required"    # "optional" or "required" (IMDSv2)
+  http_put_response_hop_limit = 2             # Number between 1 and 64
+  instance_metadata_tags      = "enabled"     # "enabled" or "disabled"
+}
+```
+
+### Tag Specifications Structure
+
+The `tag_specifications` variable accepts a list of objects for tagging resources during launch:
+
+```hcl
+tag_specifications = [
+  {
+    resource_type = "instance"    # "instance", "volume", "network-interface", "spot-instances-request"
+    tags = {
+      Name = "my-instance"
+      Role = "web-server"
+    }
+  },
+  {
+    resource_type = "volume"
+    tags = {
+      Name = "my-volume"
+    }
+  }
+]
+```
+
+### Block Device Mappings Structure
+
+The `block_device_mappings` variable accepts a list of objects for custom EBS volumes:
+
+```hcl
+block_device_mappings = [
+  {
+    device_name  = "/dev/sda1"
+    ebs = {
+      volume_size           = 20                # Size in GB
+      volume_type           = "gp3"             # gp2, gp3, io1, io2, st1, sc1
+      encrypted             = true              # Boolean
+      delete_on_termination = true              # Boolean
+      iops                  = 3000              # For gp3, io1, io2
+      throughput            = 125               # For gp3 only (125-1000)
+      kms_key_id            = "arn:aws:kms:..." # KMS key ARN
+    }
+  }
+]
+```
 
 ## Outputs
 
@@ -191,3 +318,43 @@ module "asg" {
 - Use `capacity_rebalance = true` when working with Spot Instances to enable automatic rebalancing
 - For enhanced security, configure `metadata_options` to enforce IMDSv2 by setting `http_tokens = "required"`
 - The module supports custom tag specifications for different resource types (instances, volumes, etc.)
+
+## Best Practices
+
+### Security
+
+- Always use IMDSv2 by setting `metadata_options.http_tokens = "required"`
+- Enable EBS encryption for all volumes by setting `encrypted = true` in block device mappings
+- Use dedicated security groups with minimal required permissions
+- Avoid placing instances in public subnets unless absolutely necessary
+
+### Performance and Reliability
+
+- Use ELB health checks for better application-aware health monitoring
+- Set appropriate `health_check_grace_period` to allow application startup time
+- Use multiple availability zones in `vpc_zone_identifier` for high availability
+- Consider using `capacity_rebalance = true` for Spot Instances
+- Choose appropriate instance types based on workload requirements
+
+### Cost Optimization
+
+- Use appropriate EBS volume types (gp3 is often more cost-effective than gp2)
+- Set `delete_on_termination = true` for temporary volumes
+- Consider using Spot Instances for fault-tolerant workloads
+- Right-size instances based on actual usage patterns
+
+### Monitoring and Maintenance
+
+- Enable detailed monitoring with `enable_monitoring = true` for better observability
+- Use appropriate termination policies based on your application architecture
+- Tag resources consistently for better cost allocation and management
+- Monitor Auto Scaling metrics and adjust min/max/desired capacity as needed
+
+## Common Issues and Troubleshooting
+
+- **Instance Launch Failures**: Check AMI availability in the target region, verify IAM permissions, and ensure subnets have available IP addresses
+- **Health Check Failures**: Increase `health_check_grace_period`, verify application startup time, check security group rules for health check ports
+- **Scaling Issues**: Review CloudWatch alarms, check service quotas, verify scaling policies and cooldown periods
+- **EBS Volume Issues**: Verify device names, check volume types and sizes, ensure encryption settings are correct
+- **Networking Problems**: Verify security group rules, check route tables, ensure NAT Gateway or Internet Gateway configuration
+- **Permission Errors**: Verify IAM instance profile has required permissions, check policy attachments, review CloudTrail logs for specific permission errors
