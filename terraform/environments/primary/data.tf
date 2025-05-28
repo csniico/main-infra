@@ -39,11 +39,11 @@ locals {
           },
           {
             name  = "AUTH_API_URL"
-            value = "http://localhost:${var.port["user_service"]}"
+            value = "http://${module.alb.lb_dns_name}:${var.port["user_service"]}"
           },
           {
             name  = "TASK_API_URL"
-            value = "http://localhost:${var.port["task_api"]}"
+            value = "http://${module.alb.lb_dns_name}:${var.port["task_api"]}"
           }
         ]
       }
@@ -73,7 +73,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
           },
           {
             name  = "SERVER_PORT"
@@ -81,7 +81,7 @@ locals {
           },
           {
             name  = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-            value = "${module.alb.lb_dns_name}:${var.port["jaeger"]}/v1/traces"
+            value = "http://${module.alb.lb_dns_name}:${var.port["jaeger"]}/v1/traces"
           },
           {
             name  = "OTEL_SERVICE_NAME"
@@ -127,7 +127,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
           },
           {
             name  = "SERVER_PORT"
@@ -135,7 +135,7 @@ locals {
           },
           {
             name  = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-            value = "${module.alb.lb_dns_name}:${var.port["jaeger"]}/v1/traces"
+            value = "http://${module.alb.lb_dns_name}:${var.port["jaeger"]}/v1/traces"
           },
           {
             name  = "OTEL_SERVICE_NAME"
@@ -185,11 +185,11 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
           },
           {
             name  = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-            value = "${module.alb.lb_dns_name}:${var.port["jaeger"]}/v1/traces"
+            value = "http://${module.alb.lb_dns_name}:${var.port["jaeger"]}/v1/traces"
           },
           {
             name  = "OTEL_SERVICE_NAME"
