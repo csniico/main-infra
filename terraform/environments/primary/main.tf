@@ -366,8 +366,9 @@ module "jenkins_asg" {
   max_size         = var.asg_max_sizes["jenkins"]
   desired_capacity = var.asg_desired_capacities["jenkins"]
 
-  # Networking from VPC module
+  # Networking
   vpc_zone_identifier = module.vpc.public_subnet_ids
+  target_group_arns   = [module.alb.target_group_arns_map["jenkins"]]
 
   tags = var.tags
 }
@@ -399,8 +400,9 @@ module "monitoring_asg" {
   max_size         = var.asg_max_sizes["monitoring"]
   desired_capacity = var.asg_desired_capacities["monitoring"]
 
-  # Networking from VPC module
+  # Networking
   vpc_zone_identifier = module.vpc.public_subnet_ids
+  target_group_arns   = [module.alb.target_group_arns_map["prometheus"], module.alb.target_group_arns_map["grafana"], module.alb.target_group_arns_map["jaeger"]]
 
   tags = var.tags
 }
@@ -445,7 +447,7 @@ module "efs" {
 module "alb" {
   source = "../../modules/alb"
 
-  name = "${local.name}-web"
+  name = "${local.name}-alb"
 
   # Load balancer configuration
   load_balancer_type = "application"
@@ -456,19 +458,58 @@ module "alb" {
   subnet_ids         = module.vpc.public_subnet_ids
   security_group_ids = [module.alb_sg.security_group_id]
 
-  # Target group configuration and listener
-  create_listener = true
-  target_type = "ip"
-  port        = 80
-  protocol    = "HTTP"
-
   # Target groups
   target_groups = {
-    web = {
-      name_prefix      = "web-"
-      backend_protocol = "HTTP"
-      backend_port     = 80
-      target_type      = "ip"
+    notification_service = {
+      name        = "notification-service"
+      protocol    = "HTTP"
+      port        = var.port["notification_service"]
+      target_type = "ip"
+      health_check = {
+        enabled             = true
+        interval            = 30
+        path                = "/actuator/health/"
+        port                = "traffic-port"
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+        timeout             = 5
+      }
+    }
+    user_service = {
+      name        = "user-service"
+      protocol    = "HTTP"
+      port        = var.port["user_service"]
+      target_type = "ip"
+      health_check = {
+        enabled             = true
+        interval            = 30
+        path                = "/api/v1/"
+        port                = "traffic-port"
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+        timeout             = 5
+      }
+    }
+    task_api = {
+      name        = "task-api"
+      protocol    = "HTTP"
+      port        = var.port["task_api"]
+      target_type = "ip"
+      health_check = {
+        enabled             = true
+        interval            = 30
+        path                = "/api/v1/tasks/"
+        port                = "traffic-port"
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+        timeout             = 5
+      }
+    }
+    frontend = {
+      name        = "frontend"
+      protocol    = "HTTP"
+      port        = var.port["frontend"]
+      target_type = "ip"
       health_check = {
         enabled             = true
         interval            = 30
@@ -477,9 +518,111 @@ module "alb" {
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 5
-        protocol            = "HTTP"
-        matcher             = "200-399"
       }
+    }
+    jenkins = {
+      name        = "jenkins"
+      protocol    = "HTTP"
+      port        = var.port["jenkins"]
+      target_type = "instance"
+      health_check = {
+        enabled             = true
+        interval            = 30
+        path                = "/login"
+        port                = "traffic-port"
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+        timeout             = 5
+      }
+    }
+    prometheus = {
+      name        = "prometheus"
+      protocol    = "HTTP"
+      port        = var.port["prometheus"]
+      target_type = "instance"
+      health_check = {
+        enabled             = true
+        interval            = 30
+        path                = "/"
+        port                = "traffic-port"
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+        timeout             = 5
+      }
+    }
+    grafana = {
+      name        = "grafana"
+      protocol    = "HTTP"
+      port        = var.port["grafana"]
+      target_type = "instance"
+      health_check = {
+        enabled             = true
+        interval            = 30
+        path                = "/"
+        port                = "traffic-port"
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+        timeout             = 5
+      }
+    }
+    jaeger = {
+      name        = "jaeger"
+      protocol    = "HTTP"
+      port        = var.port["jaeger"]
+      target_type = "instance"
+      health_check = {
+        enabled             = true
+        interval            = 30
+        path                = "/"
+        port                = "traffic-port"
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+        timeout             = 5
+      }
+    }
+  }
+
+  # Listeners
+  listeners = {
+    notification_service = {
+      port             = var.port["notification_service"]
+      protocol         = "HTTP"
+      target_group_key = "notification_service"
+    }
+    user_service = {
+      port             = var.port["user_service"]
+      protocol         = "HTTP"
+      target_group_key = "user_service"
+    }
+    task_api = {
+      port             = var.port["task_api"]
+      protocol         = "HTTP"
+      target_group_key = "task_api"
+    }
+    frontend = {
+      port             = var.port["frontend"]
+      protocol         = "HTTP"
+      target_group_key = "frontend"
+    }
+    jenkins = {
+      port             = var.port["jenkins"]
+      protocol         = "HTTP"
+      target_group_key = "jenkins"
+    }
+    prometheus = {
+      port             = var.port["prometheus"]
+      protocol         = "HTTP"
+      target_group_key = "prometheus"
+    }
+    grafana = {
+      port             = var.port["grafana"]
+      protocol         = "HTTP"
+      target_group_key = "grafana"
+      }
+    jaeger = {
+      port             = var.port["jaeger"]
+      protocol         = "HTTP"
+      target_group_key = "jaeger"
     }
   }
 
@@ -513,11 +656,11 @@ module "ecs_cluster" {
   tags = var.tags
 }
 
-# ECS Service with ALB
-module "ecs_service_web" {
+# Frontend Service with ALB
+module "ecs_service_frontend" {
   source = "../../modules/ecs"
 
-  name = "${local.name}-web"
+  name = "${local.name}-${var.service_names["frontend"]}"
 
   # Use existing cluster
   create_cluster = false
@@ -525,22 +668,22 @@ module "ecs_service_web" {
 
   # Task definition
   create_task_definition = true
-  container_definitions  = local.container_definitions["web"]
+  container_definitions  = local.container_definitions["frontend"]
 
   # Service configuration
   create_service = true
-  service_name   = "web"
+  service_name   = var.service_names["frontend"]
 
   # Network configuration
   subnet_ids         = module.vpc.private_subnet_ids
-  security_group_ids = [module.ecs_frontend_sg.security_group_id]
+  security_group_ids = [module.microservices_sg.security_group_id]
 
   # Load balancer integration
   load_balancer_config = [
     {
-      target_group_arn = module.alb.target_group_arns[0]
-      container_name   = "web"
-      container_port   = 80
+      target_group_arn = module.alb.target_group_arns_map["frontend"]
+      container_name   = var.service_names["frontend"]
+      container_port   = var.port["frontend"]
     }
   ]
 
@@ -550,8 +693,8 @@ module "ecs_service_web" {
 
   # Auto scaling
   enable_autoscaling       = true
-  autoscaling_min_capacity = 1
-  autoscaling_max_capacity = 3
+  autoscaling_min_capacity = var.service_min_sizes
+  autoscaling_max_capacity = var.service_max_sizes
   autoscaling_policies = {
     cpu = {
       policy_type            = "TargetTrackingScaling"
@@ -568,11 +711,11 @@ module "ecs_service_web" {
   tags = var.tags
 }
 
-# Internal ECS Service
-module "ecs_service_internal" {
+# Notification Service
+module "ecs_service_notification" {
   source = "../../modules/ecs"
 
-  name = "${local.name}-internal"
+  name = "${local.name}-${var.service_names["notification_service"]}"
 
   # Use existing cluster
   create_cluster = false
@@ -580,24 +723,35 @@ module "ecs_service_internal" {
 
   # Task definition
   create_task_definition = true
-  container_definitions  = local.container_definitions["web"]
+  container_definitions  = local.container_definitions["notification_service"]
+  task_cpu               = 512
+  task_memory            = 1024
 
   # Service configuration
   create_service = true
-  service_name   = "internal"
+  service_name   = var.service_names["notification_service"]
 
   # Network configuration
   subnet_ids         = module.vpc.private_subnet_ids
-  security_group_ids = [module.ecs_backend_sg.security_group_id]
+  security_group_ids = [module.microservices_sg.security_group_id]
 
   # IAM roles
   task_execution_role_arn = module.ecs_task_execution_role.role_arn
   task_role_arn           = module.ecs_task_role.role_arn
 
+  # Load balancer integration
+  load_balancer_config = [
+    {
+      target_group_arn = module.alb.target_group_arns_map["notification-service"]
+      container_name   = var.service_names["notification_service"]
+      container_port   = var.port["notification_service"]
+    }
+  ]
+
   # Auto scaling
   enable_autoscaling       = true
-  autoscaling_min_capacity = 1
-  autoscaling_max_capacity = 3
+  autoscaling_min_capacity = var.service_min_sizes
+  autoscaling_max_capacity = var.service_max_sizes
   autoscaling_policies = {
     cpu = {
       policy_type            = "TargetTrackingScaling"
@@ -605,6 +759,158 @@ module "ecs_service_internal" {
       target_value           = 70
     }
   }
+
+  tags = var.tags
+}
+
+# User Service
+module "ecs_service_user" {
+  source = "../../modules/ecs"
+
+  name = "${local.name}-${var.service_names["user_service"]}"
+
+  # Use existing cluster
+  create_cluster = false
+  cluster_name   = module.ecs_cluster.cluster_name
+
+  # Task definition
+  create_task_definition = true
+  container_definitions  = local.container_definitions["user_service"]
+  task_cpu               = 512
+  task_memory            = 1024
+
+  # Service configuration
+  create_service = true
+  service_name   = var.service_names["user_service"]
+
+  # Network configuration
+  subnet_ids         = module.vpc.private_subnet_ids
+  security_group_ids = [module.microservices_sg.security_group_id]
+
+  # IAM roles
+  task_execution_role_arn = module.ecs_task_execution_role.role_arn
+  task_role_arn           = module.ecs_task_role.role_arn
+
+  # Load balancer integration
+  load_balancer_config = [
+    {
+      target_group_arn = module.alb.target_group_arns_map["user-service"]
+      container_name   = var.service_names["user_service"]
+      container_port   = var.port["user_service"]
+    }
+  ]
+
+  # Auto scaling
+  enable_autoscaling       = true
+  autoscaling_min_capacity = var.service_min_sizes
+  autoscaling_max_capacity = var.service_max_sizes
+  autoscaling_policies = {
+    cpu = {
+      policy_type            = "TargetTrackingScaling"
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+      target_value           = 70
+    }
+  }
+
+  tags = var.tags
+}
+
+# Task API
+module "ecs_service_task_api" {
+  source = "../../modules/ecs"
+
+  name = "${local.name}-${var.service_names["task_api"]}"
+
+  # Use existing cluster
+  create_cluster = false
+  cluster_name   = module.ecs_cluster.cluster_name
+
+  # Task definition
+  create_task_definition = true
+  container_definitions  = local.container_definitions["task_api"]
+  task_cpu               = 512
+  task_memory            = 1024
+
+  # Service configuration
+  create_service = true
+  service_name   = var.service_names["task_api"]
+
+  # Network configuration
+  subnet_ids         = module.vpc.private_subnet_ids
+  security_group_ids = [module.microservices_sg.security_group_id]
+
+  # IAM roles
+  task_execution_role_arn = module.ecs_task_execution_role.role_arn
+  task_role_arn           = module.ecs_task_role.role_arn
+
+  # Load balancer integration
+  load_balancer_config = [
+    {
+      target_group_arn = module.alb.target_group_arns_map["task-api"]
+      container_name   = var.service_names["task_api"]
+      container_port   = var.port["task_api"]
+    }
+  ]
+
+  # Auto scaling
+  enable_autoscaling       = true
+  autoscaling_min_capacity = var.service_min_sizes
+  autoscaling_max_capacity = var.service_max_sizes
+  autoscaling_policies = {
+    cpu = {
+      policy_type            = "TargetTrackingScaling"
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+      target_value           = 70
+    }
+  }
+
+  tags = var.tags
+}
+
+# Kafka
+module "ecs_service_kafka" {
+  source = "../../modules/ecs"
+
+  name = "${local.name}-${var.service_names["ckafka"]}"
+
+  # Use existing cluster
+  create_cluster = false
+  cluster_name   = module.ecs_cluster.cluster_name
+
+  # Task definition
+  create_task_definition = true
+  container_definitions  = local.container_definitions["ckafka"]
+  task_cpu               = 1024
+  task_memory            = 2048
+
+  # Service configuration
+  create_service = true
+  service_name   = var.service_names["ckafka"]
+
+  # Network configuration
+  subnet_ids         = module.vpc.private_subnet_ids
+  security_group_ids = [module.microservices_sg.security_group_id]
+
+  # IAM roles
+  task_execution_role_arn = module.ecs_task_execution_role.role_arn
+  task_role_arn           = module.ecs_task_role.role_arn
+
+  # Auto scaling
+  enable_autoscaling = false
+
+  # Volume configuration for Kafka data
+  # volumes = [
+  #   {
+  #     name = "kafka_data"
+  #     efs_volume_configuration = {
+  #       file_system_id     = module.efs.file_system_id
+  #       transit_encryption = "ENABLED"
+  #       authorization_config = {
+  #         access_point_id = module.efs.access_point_ids["kafka"]
+  #       }
+  #     }
+  #   }
+  # ]
 
   tags = var.tags
 }
