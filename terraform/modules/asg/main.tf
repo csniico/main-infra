@@ -7,7 +7,7 @@ resource "aws_launch_template" "this" {
 
   image_id      = var.image_id
   instance_type = var.instance_type
-  key_name      = var.key_name
+  key_name      = var.key_name != null && var.key_name != "" ? var.key_name : null
   user_data     = var.user_data != null ? base64encode(var.user_data) : null
   ebs_optimized = var.ebs_optimized
 
@@ -130,18 +130,3 @@ resource "aws_autoscaling_group" "this" {
     create_before_destroy = true
   }
 }
-
-# # Key Pair
-# resource "aws_key_pair" "this" {
-#   count = var.create_key_pair ? 1 : 0
-
-#   key_name   = local.key_pair_name
-#   public_key = var.public_key
-
-#   tags = merge(
-#     var.tags,
-#     {
-#       Name = local.key_pair_name
-#     }
-#   )
-# }

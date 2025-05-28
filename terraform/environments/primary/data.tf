@@ -1,4 +1,9 @@
 # Data sources
+data "aws_efs_file_system" "dr" {
+  provider = aws.dr
+  tags     = var.dr_tags
+}
+
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -12,10 +17,11 @@ resource "random_id" "cluster_id" {
 }
 
 locals {
-  account_id = data.aws_caller_identity.current.account_id
-  region     = data.aws_region.current.name
-  name       = "${var.name}-${var.environment}"
-  azs        = slice(data.aws_availability_zones.available.names, 0, var.az_count)
+  account_id         = data.aws_caller_identity.current.account_id
+  region             = data.aws_region.current.name
+  name               = "${var.name}-${var.environment}"
+  azs                = slice(data.aws_availability_zones.available.names, 0, var.az_count)
+  dr_efs_file_system = data.aws_efs_file_system.dr
 
   # Container definitions for ECS services
   container_definitions = {
@@ -39,11 +45,11 @@ locals {
           },
           {
             name  = "AUTH_API_URL"
-            value = "http://${module.alb.lb_dns_name}:${var.port["user_service"]}"
+            value = "http://${module.alb.lb_dns_name}:${var.port["user_service"]}/api/v1"
           },
           {
             name  = "TASK_API_URL"
-            value = "http://${module.alb.lb_dns_name}:${var.port["task_api"]}"
+            value = "http://${module.alb.lb_dns_name}:${var.port["task_api"]}/api/v1"
           }
         ]
       }
@@ -86,6 +92,18 @@ locals {
           {
             name  = "OTEL_SERVICE_NAME"
             value = "${var.service_names["notification_service"]}"
+          },
+          {
+            name  = "OTEL_LOGS_EXPORTER"
+            value = "none"
+          },
+          {
+            name  = "OTEL_PROPAGATORS"
+            value = "tracecontext,baggage,b3"
+          },
+          {
+            name  = "OTEL_METRICS_EXPORTER"
+            value = "none"
           }
         ]
         logConfiguration = {
@@ -140,6 +158,18 @@ locals {
           {
             name  = "OTEL_SERVICE_NAME"
             value = "${var.service_names["user_service"]}"
+          },
+          {
+            name  = "OTEL_LOGS_EXPORTER"
+            value = "none"
+          },
+          {
+            name  = "OTEL_PROPAGATORS"
+            value = "tracecontext,baggage,b3"
+          },
+          {
+            name  = "OTEL_METRICS_EXPORTER"
+            value = "none"
           }
         ]
         logConfiguration = {
@@ -194,6 +224,18 @@ locals {
           {
             name  = "OTEL_SERVICE_NAME"
             value = "${var.service_names["task_api"]}"
+          },
+          {
+            name  = "OTEL_LOGS_EXPORTER"
+            value = "none"
+          },
+          {
+            name  = "OTEL_PROPAGATORS"
+            value = "tracecontext,baggage,b3"
+          },
+          {
+            name  = "OTEL_METRICS_EXPORTER"
+            value = "none"
           }
         ]
         logConfiguration = {
@@ -211,7 +253,7 @@ locals {
     ckafka = jsonencode([
       {
         name      = var.service_names["ckafka"]
-        image     = "124355645722.dkr.ecr.eu-west-1.amazonaws.com/kafka-service:latest"
+        image     = "124355645722.dkr.ecr.eu-west-1.amazonaws.com/kafka-service:1.0.0"
         essential = true
         portMappings = [
           {

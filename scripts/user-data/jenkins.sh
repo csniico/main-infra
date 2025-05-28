@@ -17,6 +17,9 @@ sudo groupadd -g $${JENKINS_GID} jenkins
 # Create jenkins user with specific UID
 sudo useradd -u $${JENKINS_UID} -g $${JENKINS_GID} -m -d $${JENKINS_HOME} jenkins
 
+# Add the EC2 user to the jenkins group
+sudo usermod -aG jenkins ec2-user
+
 # Add EFS mount
 sudo mkdir -p $${MOUNT_DIR}
 sudo mount -t efs -o tls,accesspoint=$${ACCESS_POINT_ID} $${EFS_ID}:/ $${MOUNT_DIR}
@@ -32,7 +35,10 @@ sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
 sudo rpm --import https://yum.corretto.aws/corretto.key
 sudo curl -Lo /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo
 
-sudo yum upgrade -y && sudo yum install -y fontconfig java-17-amazon-corretto jenkins
+sudo yum upgrade -y && sudo yum install -y fontconfig java-17-amazon-corretto jenkins docker git
+
+# Add the EC2 user to the docker group (so you can run docker without sudo)
+sudo usermod -aG docker ec2-user
 
 # Stop Jenkins in case it started
 sudo systemctl stop jenkins
@@ -47,5 +53,7 @@ sudo systemctl mask tmp.mount
 
 # Enable and start Jenkins
 sudo systemctl enable jenkins
+sudo systemctl enable docker
 sudo systemctl start jenkins
+sudo systemctl start docker
 sudo systemctl daemon-reload

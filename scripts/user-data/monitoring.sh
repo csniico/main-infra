@@ -18,6 +18,9 @@ sudo groupadd -g $${DOCKER_GID} docker
 # Create docker user with specific UID
 sudo useradd -u $${DOCKER_UID} -g $${DOCKER_GID} -m -d $${DOCKER_HOME} docker
 
+# Add the EC2 user to the docker group (so you can run docker without sudo)
+sudo usermod -aG docker ec2-user
+
 # Add EFS mount
 sudo mkdir -p $${MOUNT_DIR}
 sudo mount -t efs -o tls,accesspoint=$${ACCESS_POINT_ID} $${EFS_ID}:/ $${MOUNT_DIR}
