@@ -2,6 +2,7 @@
 variable "name" {
   description = "Name of the EFS file system"
   type        = string
+  default     = null
 }
 
 variable "name_prefix" {
@@ -10,15 +11,35 @@ variable "name_prefix" {
   default     = null
 }
 
+variable "create_file_system" {
+  description = "Whether to create an EFS file system"
+  type        = bool
+  default     = true
+}
+
+variable "create_mount_targets" {
+  description = "Whether to create mount targets for the EFS file system"
+  type        = bool
+  default     = true
+}
+
+variable "create_access_points" {
+  description = "Whether to create access points for the EFS file system"
+  type        = bool
+  default     = true
+}
+
 # Network Configuration
 variable "vpc_id" {
   description = "ID of the VPC where the EFS file system will be created"
   type        = string
+  default     = null
 }
 
 variable "subnet_ids" {
   description = "List of subnet IDs where mount targets will be created"
   type        = list(string)
+  default     = null
 }
 
 # Security Group
@@ -27,23 +48,6 @@ variable "security_group_ids" {
   type        = list(string)
   default     = []
 }
-# variable "create_security_group" {
-#   description = "Whether to create a security group for the EFS file system"
-#   type        = bool
-#   default     = true
-# }
-
-
-# variable "allowed_cidr_blocks" {
-#   description = "List of CIDR blocks to allow NFS traffic from"
-#   default     = []
-# }
-
-# variable "allowed_security_group_ids" {
-#   description = "List of security group IDs to allow NFS traffic from"
-#   type        = list(string)
-#   default     = []
-# }
 
 # Performance Settings
 variable "performance_mode" {
@@ -150,6 +154,12 @@ variable "replication_destination_region" {
 
 variable "replication_destination_kms_key_id" {
   description = "The ARN of the KMS Key to use when encrypting the replicated file system"
+  type        = string
+  default     = null
+}
+
+variable "source_file_system_id" {
+  description = "The ID of the source file system to replicate. If not provided, the source file system will be the one created by this module"
   type        = string
   default     = null
 }

@@ -1,5 +1,7 @@
 # EFS File System
 resource "aws_efs_file_system" "this" {
+  count = var.create_file_system ? 1 : 0
+
   creation_token = local.creation_token
 
   # Performance settings
@@ -44,7 +46,9 @@ resource "aws_efs_file_system" "this" {
 
 # EFS Backup Policy
 resource "aws_efs_backup_policy" "this" {
-  file_system_id = aws_efs_file_system.this.id
+  count = var.create_file_system ? 1 : 0
+
+  file_system_id = aws_efs_file_system.this[0].id
 
   backup_policy {
     status = var.enable_backup ? "ENABLED" : "DISABLED"
@@ -53,18 +57,18 @@ resource "aws_efs_backup_policy" "this" {
 
 # EFS Mount Targets
 resource "aws_efs_mount_target" "this" {
-  count = length(var.subnet_ids)
+  count = var.create_mount_targets ? length(var.subnet_ids) : 0
 
-  file_system_id  = aws_efs_file_system.this.id
+  file_system_id  = var.source_file_system_id != null ? var.source_file_system_id : aws_efs_file_system.this[0].id
   subnet_id       = var.subnet_ids[count.index]
   security_groups = var.security_group_ids
 }
 
 # EFS Access Points (optional)
 resource "aws_efs_access_point" "this" {
-  for_each = { for ap in var.access_points : ap.name => ap }
+  for_each = var.create_access_points ? { for ap in var.access_points : ap.name => ap } : {}
 
-  file_system_id = aws_efs_file_system.this.id
+  file_system_id = var.source_file_system_id != null ? var.source_file_system_id : aws_efs_file_system.this[0].id
 
   # Root directory
   root_directory {
@@ -103,7 +107,7 @@ resource "aws_efs_access_point" "this" {
 resource "aws_efs_replication_configuration" "this" {
   count = var.enable_replication && var.replication_destination_region != null ? 1 : 0
 
-  source_file_system_id = aws_efs_file_system.this.id
+  source_file_system_id = var.source_file_system_id != null ? var.source_file_system_id : aws_efs_file_system.this[0].id
 
   destination {
     region     = var.replication_destination_region
