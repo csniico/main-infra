@@ -164,6 +164,12 @@ variable "source_file_system_id" {
   default     = null
 }
 
+variable "destination_system_id" {
+  description = "The ID of the destination file system for replication. If not provided, the destination file system will be the one created by this module"
+  type        = string
+  default     = null
+}
+
 # Tags
 variable "tags" {
   description = "A map of tags to add to all resources"

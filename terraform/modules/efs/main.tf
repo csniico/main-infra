@@ -110,7 +110,8 @@ resource "aws_efs_replication_configuration" "this" {
   source_file_system_id = var.source_file_system_id != null ? var.source_file_system_id : aws_efs_file_system.this[0].id
 
   destination {
-    region     = var.replication_destination_region
-    kms_key_id = var.replication_destination_kms_key_id
+    region         = var.replication_destination_region
+    kms_key_id     = var.replication_destination_kms_key_id
+    file_system_id = var.destination_system_id
   }
 }
