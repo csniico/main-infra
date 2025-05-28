@@ -85,6 +85,12 @@ variable "asg_desired_capacities" {
   }
 }
 
+variable "key_name" {
+  description = "SSH key pair name for EC2 instances"
+  type        = string
+  default     = "capstone-2"
+}
+
 # EFS
 variable "jenkins_id" {
   description = "UID and GID for Jenkins user and group"
@@ -211,6 +217,16 @@ variable "discovery_namespace" {
 }
 
 # Tags
+variable "dr_tags" {
+  description = "Tags to apply to all DR resources"
+  type        = map(string)
+  default = {
+    Environment = "dr"
+    Project     = "capstone"
+    Terraform   = "true"
+  }
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

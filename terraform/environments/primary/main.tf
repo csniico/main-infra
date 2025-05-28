@@ -20,36 +20,42 @@ module "alb_sg" {
   name   = "${local.name}-alb"
   vpc_id = module.vpc.vpc_id
 
-  # Allow traffic for microservices
+  # Allow traffic for all services from ALB
   ingress_with_cidr_blocks = {
-    task_api = {
-      from_port   = var.port["task_api"]
-      to_port     = var.port["task_api"]
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-    user_service = {
-      from_port   = var.port["user_service"]
-      to_port     = var.port["user_service"]
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-    notification_service = {
-      from_port   = var.port["notification_service"]
-      to_port     = var.port["notification_service"]
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-    frontend = {
-      from_port   = var.port["frontend"]
-      to_port     = var.port["frontend"]
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-    jenkins = {
-      from_port   = var.port["jenkins"]
-      to_port     = var.port["jenkins"]
-      protocol    = "tcp"
+    # task_api = {
+    #   from_port   = var.port["task_api"]
+    #   to_port     = var.port["task_api"]
+    #   protocol    = "tcp"
+    #   cidr_blocks = ["0.0.0.0/0"]
+    # }
+    # user_service = {
+    #   from_port   = var.port["user_service"]
+    #   to_port     = var.port["user_service"]
+    #   protocol    = "tcp"
+    #   cidr_blocks = ["0.0.0.0/0"]
+    # }
+    # notification_service = {
+    #   from_port   = var.port["notification_service"]
+    #   to_port     = var.port["notification_service"]
+    #   protocol    = "tcp"
+    #   cidr_blocks = ["0.0.0.0/0"]
+    # }
+    # frontend = {
+    #   from_port   = var.port["frontend"]
+    #   to_port     = var.port["frontend"]
+    #   protocol    = "tcp"
+    #   cidr_blocks = ["0.0.0.0/0"]
+    # }
+    # jenkins = {
+    #   from_port   = var.port["jenkins"]
+    #   to_port     = var.port["jenkins"]
+    #   protocol    = "tcp"
+    #   cidr_blocks = ["0.0.0.0/0"]
+    # }
+    all = {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
       cidr_blocks = ["0.0.0.0/0"]
     }
   }
@@ -366,7 +372,7 @@ module "jenkins_asg" {
     {
       device_name = "/dev/xvda"
       ebs = {
-        volume_size           = 20
+        volume_size           = 30
         volume_type           = "gp3"
         delete_on_termination = true
         encrypted             = true
@@ -394,7 +400,7 @@ module "monitoring_asg" {
   # Launch template configuration
   image_id      = "ami-03d8b47244d950bbb" # Amazon Linux 2023 AMI
   instance_type = var.instance_types["monitoring"]
-  key_name = "${local.name}-monitoring-key"
+  key_name      = var.key_name
   user_data = templatefile("${path.module}/../../../scripts/user-data/monitoring.sh", {
     efs_id     = module.efs.file_system_id
     ap_id      = module.efs.access_point_ids["monitoring"]
@@ -468,6 +474,7 @@ module "efs" {
   # Enable replication
   enable_replication             = true
   replication_destination_region = var.dr_region
+  destination_system_id = local.dr_efs_file_system.id != null ? local.dr_efs_file_system.id : null
 
   tags = var.tags
 }
@@ -497,8 +504,8 @@ module "alb" {
       health_check = {
         enabled             = true
         interval            = 30
-        path                = "/actuator/health"
-        port                = "traffic-port"
+        path                = "/api/v1/"
+        port                = var.port["notification_service"]
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 5
@@ -512,8 +519,8 @@ module "alb" {
       health_check = {
         enabled             = true
         interval            = 30
-        path                = "/api/v1"
-        port                = "traffic-port"
+        path                = "/api/v1/"
+        port                = var.port["user_service"]
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 5
@@ -528,7 +535,7 @@ module "alb" {
         enabled             = true
         interval            = 30
         path                = "/api/v1/tasks"
-        port                = "traffic-port"
+        port                = var.port["task_api"]
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 5
@@ -543,7 +550,7 @@ module "alb" {
         enabled             = true
         interval            = 30
         path                = "/"
-        port                = "traffic-port"
+        port                = var.port["frontend"]
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 5
@@ -558,7 +565,7 @@ module "alb" {
         enabled             = true
         interval            = 30
         path                = "/login"
-        port                = "traffic-port"
+        port                = var.port["jenkins"]
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 5
@@ -573,7 +580,7 @@ module "alb" {
         enabled             = true
         interval            = 30
         path                = "/"
-        port                = "traffic-port"
+        port                = var.port["prometheus"]
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 5
@@ -588,7 +595,7 @@ module "alb" {
         enabled             = true
         interval            = 30
         path                = "/"
-        port                = "traffic-port"
+        port                = var.port["grafana"]
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 5
@@ -603,7 +610,7 @@ module "alb" {
         enabled             = true
         interval            = 30
         path                = "/"
-        port                = "traffic-port"
+        port                = var.port["jaeger"]
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 5
