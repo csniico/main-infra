@@ -17,6 +17,9 @@ The infrastructure is designed as a multi-tier, cloud-native architecture featur
 - **Monitoring**: Prometheus, Grafana, and Jaeger for observability
 - **Security**: VPC with private subnets, security groups, and IAM roles following least privilege
 
+![CI/CD Workflow](assets/cicd-visual.png)
+
+
 ## 📁 Repository Structure
 
 ```
