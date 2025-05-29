@@ -79,7 +79,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "${var.service_names["ckafka"]}.primary-services-namespace:${var.port["ckafka"]}"
           },
           {
             name  = "SERVER_PORT"
@@ -145,7 +145,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "${var.service_names["ckafka"]}.primary-services-namespace:${var.port["ckafka"]}"
           },
           {
             name  = "SERVER_PORT"
@@ -215,7 +215,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "${var.service_names["ckafka"]}.primary-services-namespace:${var.port["ckafka"]}"
           },
           {
             name  = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
@@ -290,7 +290,7 @@ locals {
           },
           {
             name  = "KAFKA_ADVERTISED_LISTENERS"
-            value = "PLAINTEXT://localhost:${var.port["ckafka"]}"
+            value = "PLAINTEXT://${var.service_names["ckafka"]}.primary-services-namespace:${var.port["ckafka"]}"
           },
           {
             name  = "KAFKA_CONTROLLER_LISTENER_NAMES"

@@ -80,8 +80,8 @@ variable "asg_desired_capacities" {
   description = "Desired capacities for ASGs"
   type        = map(number)
   default = {
-    "jenkins"    = 1
-    "monitoring" = 1
+    "jenkins"    = 0
+    "monitoring" = 0
   }
 }
 
@@ -89,6 +89,13 @@ variable "key_name" {
   description = "SSH key pair name for EC2 instances"
   type        = string
   default     = "capstone-2-dr"
+}
+
+variable "amzn_2023_ami" {
+  description = "Amazon Linux 2023 AMI ID"
+  type        = string
+  default     = "ami-0953476d60561c955"
+  
 }
 
 # EFS

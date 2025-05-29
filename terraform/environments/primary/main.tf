@@ -344,6 +344,25 @@ module "ecs_task_role" {
   tags = var.tags
 }
 
+
+module "ecs_notif_task_role" {
+  source = "../../modules/iam"
+
+  name = "${local.name}-ecs-notif-task"
+
+  # Role configuration
+  trusted_role_services = ["ecs-tasks.amazonaws.com"]
+
+  # Attach managed policies
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+    "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
+    "arn:aws:iam::aws:policy/AmazonSNSFullAccess"
+  ]
+
+  tags = var.tags
+}
+
 # Auto Scaling Groups
 module "jenkins_asg" {
   source = "../../modules/asg"
@@ -351,7 +370,7 @@ module "jenkins_asg" {
   name = "${local.name}-jenkins"
 
   # Launch template configuration
-  image_id      = "ami-03d8b47244d950bbb" # Amazon Linux 2023 AMI
+  image_id      = var.amzn_2023_ami
   instance_type = var.instance_types["jenkins"]
   user_data = templatefile("${path.module}/../../../scripts/user-data/jenkins.sh", {
     efs_id      = module.efs.file_system_id
@@ -398,7 +417,7 @@ module "monitoring_asg" {
   name = "${local.name}-monitoring"
 
   # Launch template configuration
-  image_id      = "ami-03d8b47244d950bbb" # Amazon Linux 2023 AMI
+  image_id      =  var.amzn_2023_ami
   instance_type = var.instance_types["monitoring"]
   key_name      = var.key_name
   user_data = templatefile("${path.module}/../../../scripts/user-data/monitoring.sh", {
@@ -636,7 +655,7 @@ module "alb" {
       target_group_key = "task_api"
     }
     frontend = {
-      port             = var.port["frontend"]
+      port             = 80
       protocol         = "HTTP"
       target_group_key = "frontend"
     }
@@ -786,7 +805,7 @@ module "ecs_service_notification" {
 
   # IAM roles
   task_execution_role_arn = module.ecs_task_execution_role.role_arn
-  task_role_arn           = module.ecs_task_role.role_arn
+  task_role_arn           = module.ecs_notif_task_role.role_arn
 
   # Load balancer integration
   load_balancer_config = [

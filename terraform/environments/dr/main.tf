@@ -351,7 +351,7 @@ module "jenkins_asg" {
   name = "${local.name}-jenkins"
 
   # Launch template configuration
-  image_id      = "ami-0953476d60561c955" # Amazon Linux 2023 AMI
+  image_id      = var.amzn_2023_ami
   instance_type = var.instance_types["jenkins"]
   user_data = templatefile("${path.module}/../../../scripts/user-data/jenkins.sh", {
     efs_id      = local.primary_efs_file_system.id
@@ -398,7 +398,7 @@ module "monitoring_asg" {
   name = "${local.name}-monitoring"
 
   # Launch template configuration
-  image_id      = "ami-0953476d60561c955" # Amazon Linux 2023 AMI
+  image_id      = var.amzn_2023_ami
   instance_type = var.instance_types["monitoring"]
   key_name      = var.key_name
   user_data = templatefile("${path.module}/../../../scripts/user-data/monitoring.sh", {

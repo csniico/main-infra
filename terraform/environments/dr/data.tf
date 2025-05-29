@@ -85,7 +85,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "${var.service_names["ckafka"]}.dr-services-namespace:${var.port["ckafka"]}"
           },
           {
             name  = "SERVER_PORT"
@@ -100,15 +100,15 @@ locals {
             value = "${var.service_names["notification_service"]}"
           },
           {
-            name = "OTEL_LOGS_EXPORTER"
+            name  = "OTEL_LOGS_EXPORTER"
             value = "none"
           },
           {
-            name = "OTEL_PROPAGATORS"
+            name  = "OTEL_PROPAGATORS"
             value = "tracecontext,baggage,b3"
           },
           {
-            name = "OTEL_METRICS_EXPORTER"
+            name  = "OTEL_METRICS_EXPORTER"
             value = "none"
           }
         ]
@@ -139,7 +139,7 @@ locals {
         environment = [
           {
             name  = "SPRING_DATASOURCE_HOST_URL"
-            value = "jdbc:postgresql://${local.primary_db_instance.endpoint}/${var.db_name}"
+            value = "jdbc:postgresql://${local.primary_db_instance.address}/${var.db_name}"
           },
           {
             name  = "SPRING_DATASOURCE_USERNAME"
@@ -151,7 +151,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "${var.service_names["ckafka"]}.dr-services-namespace:${var.port["ckafka"]}"
           },
           {
             name  = "SERVER_PORT"
@@ -166,15 +166,15 @@ locals {
             value = "${var.service_names["user_service"]}"
           },
           {
-            name = "OTEL_LOGS_EXPORTER"
+            name  = "OTEL_LOGS_EXPORTER"
             value = "none"
           },
           {
-            name = "OTEL_PROPAGATORS"
+            name  = "OTEL_PROPAGATORS"
             value = "tracecontext,baggage,b3"
           },
           {
-            name = "OTEL_METRICS_EXPORTER"
+            name  = "OTEL_METRICS_EXPORTER"
             value = "none"
           }
         ]
@@ -205,7 +205,7 @@ locals {
         environment = [
           {
             name  = "SPRING_DATASOURCE_HOST_URL"
-            value = "jdbc:postgresql://${local.primary_db_instance.endpoint}/${var.db_name}"
+            value = "jdbc:postgresql://${local.primary_db_instance.address}/${var.db_name}"
           },
           {
             name  = "SPRING_DATASOURCE_USERNAME"
@@ -221,7 +221,7 @@ locals {
           },
           {
             name  = "SPRING_KAFKA_BOOTSTRAP_SERVERS"
-            value = "http://${var.service_names["ckafka"]}:${var.port["ckafka"]}"
+            value = "${var.service_names["ckafka"]}.dr-services-namespace:${var.port["ckafka"]}"
           },
           {
             name  = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
@@ -232,15 +232,15 @@ locals {
             value = "${var.service_names["task_api"]}"
           },
           {
-            name = "OTEL_LOGS_EXPORTER"
+            name  = "OTEL_LOGS_EXPORTER"
             value = "none"
           },
           {
-            name = "OTEL_PROPAGATORS"
+            name  = "OTEL_PROPAGATORS"
             value = "tracecontext,baggage,b3"
           },
           {
-            name = "OTEL_METRICS_EXPORTER"
+            name  = "OTEL_METRICS_EXPORTER"
             value = "none"
           }
         ]
@@ -296,7 +296,7 @@ locals {
           },
           {
             name  = "KAFKA_ADVERTISED_LISTENERS"
-            value = "PLAINTEXT://localhost:${var.port["ckafka"]}"
+            value = "PLAINTEXT://${var.service_names["ckafka"]}.dr-services-namespace:${var.port["ckafka"]}"
           },
           {
             name  = "KAFKA_CONTROLLER_LISTENER_NAMES"

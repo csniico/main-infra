@@ -91,6 +91,13 @@ variable "key_name" {
   default     = "capstone-2"
 }
 
+variable "amzn_2023_ami" {
+  description = "Amazon Linux 2023 AMI ID"
+  type        = string
+  default     = "ami-03d8b47244d950bbb"
+  
+}
+
 # EFS
 variable "jenkins_id" {
   description = "UID and GID for Jenkins user and group"
@@ -215,6 +222,41 @@ variable "discovery_namespace" {
     "dns_type"    = "A"
   }
 }
+
+# variable "fontend_container_definitions" {
+#   description = "Container definitions for ECS services"
+#   type        = map(any)
+#   default = {
+#     "frontend" = jsonencode([
+#       {
+#         name      = var.service_names["frontend"]
+#         image     = "124355645722.dkr.ecr.eu-west-1.amazonaws.com/frontend-service:latest"
+#         essential = true
+#         portMappings = [
+#           {
+#             containerPort = var.port["frontend"]
+#             hostPort      = var.port["frontend"]
+#             protocol      = "tcp"
+#           }
+#         ]
+#         environment = [
+#           {
+#             name  = "NODE_ENV"
+#             value = "production"
+#           },
+#           {
+#             name  = "AUTH_API_URL"
+#             value = "http://${module.alb.lb_dns_name}:${var.port["user_service"]}/api/v1"
+#           },
+#           {
+#             name  = "TASK_API_URL"
+#             value = "http://${module.alb.lb_dns_name}:${var.port["task_api"]}/api/v1"
+#           }
+#         ]
+#       }
+#     ])
+#   }
+# }
 
 # Tags
 variable "dr_tags" {
