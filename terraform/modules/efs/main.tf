@@ -41,6 +41,12 @@ resource "aws_efs_file_system" "this" {
     replication_overwrite = var.enable_replication_overwrite ? "ENABLED" : "DISABLED"
   }
 
+  lifecycle {
+    ignore_changes = [
+      protection
+    ]
+  }
+
   tags = merge(
     var.tags,
     {
