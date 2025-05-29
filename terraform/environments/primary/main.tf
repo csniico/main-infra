@@ -22,36 +22,6 @@ module "alb_sg" {
 
   # Allow traffic for all services from ALB
   ingress_with_cidr_blocks = {
-    # task_api = {
-    #   from_port   = var.port["task_api"]
-    #   to_port     = var.port["task_api"]
-    #   protocol    = "tcp"
-    #   cidr_blocks = ["0.0.0.0/0"]
-    # }
-    # user_service = {
-    #   from_port   = var.port["user_service"]
-    #   to_port     = var.port["user_service"]
-    #   protocol    = "tcp"
-    #   cidr_blocks = ["0.0.0.0/0"]
-    # }
-    # notification_service = {
-    #   from_port   = var.port["notification_service"]
-    #   to_port     = var.port["notification_service"]
-    #   protocol    = "tcp"
-    #   cidr_blocks = ["0.0.0.0/0"]
-    # }
-    # frontend = {
-    #   from_port   = var.port["frontend"]
-    #   to_port     = var.port["frontend"]
-    #   protocol    = "tcp"
-    #   cidr_blocks = ["0.0.0.0/0"]
-    # }
-    # jenkins = {
-    #   from_port   = var.port["jenkins"]
-    #   to_port     = var.port["jenkins"]
-    #   protocol    = "tcp"
-    #   cidr_blocks = ["0.0.0.0/0"]
-    # }
     all = {
       from_port   = 0
       to_port     = 0
